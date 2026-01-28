@@ -1,0 +1,57 @@
+name: CI Security
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: npm ci
+
+      - name: Dependency audit (backend)
+        working-directory: apps/backend
+        run: npm audit --audit-level=high
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+
+      - name: SAST (semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/default
+
+      - name: SBOM (CycloneDX - backend)
+        working-directory: apps/backend
+        run: npx @cyclonedx/cyclonedx-npm --output-file sbom.json --output-format json --short-package-urls
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: apps/backend/sbom.json
+
+      - name: Docker image scan (Trivy)
+        if: ${{ hashFiles('apps/backend/Dockerfile') != '' }}
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: "local/saas-builder-api:ci"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"

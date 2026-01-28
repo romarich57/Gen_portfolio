@@ -44,7 +44,7 @@ function VerifyEmail() {
     return () => {
       active = false;
     };
-  }, [searchParams]);
+  }, [token]);
 
   return (
     <div className="mx-auto max-w-md space-y-4">

@@ -5,12 +5,6 @@ import ThemeToggle from '@/components/common/ThemeToggle';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/app/providers/AuthBootstrap';
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/profile', label: 'Profil' },
-  { to: '/billing', label: 'Billing' }
-];
-
 /**
  * Private layout for authenticated pages.
  * Preconditions: user authenticated.
@@ -19,6 +13,13 @@ const navItems = [
 function PrivateLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isAdmin = user?.roles?.includes('admin') || user?.roles?.includes('super_admin');
+  const navItems = [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/profile', label: 'Profil' },
+    { to: '/billing', label: 'Billing' },
+    ...(isAdmin ? [{ to: '/admin/status', label: 'Statut services' }] : [])
+  ];
 
   const handleLogout = async () => {
     await logout();

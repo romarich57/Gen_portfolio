@@ -7,6 +7,7 @@ import Label from '@/components/ui/Label';
 import ErrorBanner from '@/components/common/ErrorBanner';
 import { verifyMfa } from '@/api/auth';
 import { useAuth } from '@/app/providers/AuthBootstrap';
+import type { ApiError } from '@/api/http';
 
 /**
  * MFA challenge page.
@@ -27,10 +28,32 @@ function MfaChallenge() {
 
     try {
       await verifyMfa({ code });
-      await refreshUser();
+    } catch (err) {
+      const apiError = err as ApiError;
+      if (apiError.code === 'NETWORK_ERROR') {
+        setError('Impossible de contacter le serveur.');
+      } else if (
+        apiError.code === 'CSRF_TOKEN_INVALID' ||
+        apiError.code === 'CSRF_ORIGIN_INVALID' ||
+        apiError.code === 'CSRF_ORIGIN_MISSING'
+      ) {
+        setError('Session CSRF expiree. Rechargez la page.');
+      } else {
+        setError('Code MFA invalide.');
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const refreshed = await refreshUser();
+      if (!refreshed) {
+        setError('Impossible de recuperer la session.');
+        return;
+      }
       navigate('/dashboard');
     } catch {
-      setError('Code MFA invalide.');
+      setError('Impossible de recuperer la session.');
     } finally {
       setLoading(false);
     }

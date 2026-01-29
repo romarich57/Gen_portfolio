@@ -6,6 +6,9 @@
 - CSRF token en memoire (GET /auth/csrf) et header `X-CSRF-Token` sur POST/PATCH/DELETE.
 - `fetch` avec `credentials: "include"` partout.
 - Pas de log de donnees sensibles (OTP, tokens, secrets, PII inutile).
+- Captcha adaptatif supporte (affiche si `CAPTCHA_REQUIRED`).
+- Flag frontend: `VITE_CAPTCHA_ENABLED=false` (placeholder si non configure).
+- Login accepte email OU pseudo dans le meme champ.
 
 ## Gestion des erreurs
 - Messages neutres (anti-enumeration).

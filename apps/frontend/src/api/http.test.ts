@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-import { apiRequest, setAuthErrorHandler } from './http';
+import { apiRequest, setAuthErrorHandler, setCsrfErrorHandler } from './http';
 import { setCsrfToken } from './csrf';
 
 const createResponse = (status: number, body: unknown) => ({
@@ -52,5 +52,25 @@ describe('apiRequest', () => {
 
     await expect(apiRequest('/test', { method: 'GET', skipAuthRedirect: true })).rejects.toBeDefined();
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('invokes csrf handler on CSRF error', async () => {
+    const handler = vi.fn();
+    setCsrfErrorHandler(handler);
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValue(createResponse(403, { error: 'CSRF_TOKEN_INVALID' }));
+
+    await expect(apiRequest('/test', { method: 'POST', body: JSON.stringify({}) })).rejects.toBeDefined();
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns a NETWORK_ERROR when fetch fails', async () => {
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(apiRequest('/test', { method: 'GET' })).rejects.toMatchObject({
+      code: 'NETWORK_ERROR',
+      status: 0
+    });
   });
 });

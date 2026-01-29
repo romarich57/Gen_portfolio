@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import Button from '@/components/ui/Button';
@@ -8,6 +8,7 @@ import ErrorBanner from '@/components/common/ErrorBanner';
 import Loading from '@/components/common/Loading';
 import { createCheckoutSession, createPortalSession, getBillingStatus } from '@/api/billing';
 import { useAuth } from '@/app/providers/AuthBootstrap';
+import type { ApiError } from '@/api/http';
 
 const upgradeOptions = [
   {
@@ -34,10 +35,25 @@ function Billing() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { data: billingStatus, isLoading } = useQuery({
+  const {
+    data: billingStatus,
+    isLoading,
+    isError,
+    error: billingError,
+    refetch
+  } = useQuery({
     queryKey: ['billing-status'],
     queryFn: async () => getBillingStatus()
   });
+
+  const billingErrorMessage = useMemo(() => {
+    if (!billingError) return 'Impossible de charger le billing.';
+    const apiError = billingError as ApiError;
+    if (apiError.code === 'NETWORK_ERROR') {
+      return 'Impossible de contacter le serveur.';
+    }
+    return 'Impossible de charger le billing.';
+  }, [billingError]);
 
   const handleCheckout = async (planCode: 'PREMIUM' | 'VIP') => {
     setError(null);
@@ -45,8 +61,17 @@ function Billing() {
     try {
       const response = await createCheckoutSession({ planCode });
       window.location.assign(response.checkout_url);
-    } catch {
-      setError('Impossible de demarrer le checkout.');
+    } catch (err) {
+      const apiError = err as ApiError;
+      if (apiError.code === 'CAPTCHA_REQUIRED') {
+        setError('Verification anti-bot requise. Reessayez plus tard.');
+      } else if (apiError.code === 'PLAN_INVALID') {
+        setError('Plan invalide.');
+      } else if (apiError.code === 'NETWORK_ERROR') {
+        setError('Impossible de contacter le serveur.');
+      } else {
+        setError('Impossible de demarrer le checkout.');
+      }
     } finally {
       setLoading(false);
     }
@@ -58,17 +83,33 @@ function Billing() {
     try {
       const response = await createPortalSession();
       window.location.assign(response.portal_url);
-    } catch {
-      setError('Impossible d\'ouvrir le portal.');
+    } catch (err) {
+      const apiError = err as ApiError;
+      if (apiError.code === 'NETWORK_ERROR') {
+        setError('Impossible de contacter le serveur.');
+      } else {
+        setError('Impossible d\'ouvrir le portal.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (isLoading || !billingStatus) {
+  if (isLoading) {
     return (
       <div className="p-4">
         <Loading />
+      </div>
+    );
+  }
+
+  if (isError || !billingStatus) {
+    return (
+      <div className="space-y-4 p-4">
+        <ErrorBanner message={billingErrorMessage} />
+        <Button variant="outline" onClick={() => refetch()}>
+          Reessayer
+        </Button>
       </div>
     );
   }

@@ -178,8 +178,8 @@ Donc:
 - Le front ne peut pas lire les tokens.
 - Le front doit gérer:
   - l’état "connecté / non connecté"
-  - le CSRF token (non HttpOnly) pour les requêtes state-changing
-  - les redirections d’onboarding (email/phone/MFA)
+- le CSRF token (non HttpOnly) pour les requêtes state-changing
+- les redirections d’onboarding (email + profil complet uniquement)
 
 ---
 
@@ -210,13 +210,10 @@ Donc:
 
 ## 2) Architecture React recommandée
 - Routes publiques: landing, login, register, verify email
-- Routes onboarding sécurisées:
-  - verify phone
-  - setup MFA (TOTP)
-  - backup codes
 - Routes privées:
   - dashboard
   - profil
+  - sécurité (téléphone, MFA TOTP, backup codes) — optionnel
   - projets (plus tard)
 - Routes admin:
   - panneau admin (RBAC côté API obligatoire)
@@ -237,14 +234,15 @@ Donc:
 ## 3) UX flows obligatoires (sécurité)
 ### 3.1 Onboarding après Register
 1) Register OK -> écran: "Vérifie ton email"
-2) Email vérifié -> écran: "Vérifie ton téléphone"
-3) Téléphone vérifié -> écran: "Active la MFA (TOTP) obligatoire"
-4) MFA activée -> dashboard
+2) Email vérifié -> login
+3) Profil complet requis -> accès app (dashboard)
+4) Téléphone/MFA optionnels via Profil > Sécurité
 
 ### 3.2 Login
+- Champ identifiant unique: email ou pseudo (email prioritaire si format email).
 - Si user n’a pas email vérifié -> rediriger vers écran email verify
-- Sinon si phone non vérifié -> écran phone verify
-- Sinon si MFA non activée (globale ON) -> écran setup MFA
+- Si profil incomplet -> rediriger vers CompleteProfile
+- Si MFA imposée (flag global ON) -> écran setup MFA
 - Sinon login normal -> si MFA activée: prompt code TOTP
 
 ---

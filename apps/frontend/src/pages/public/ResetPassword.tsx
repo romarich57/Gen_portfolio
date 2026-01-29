@@ -7,6 +7,7 @@ import Label from '@/components/ui/Label';
 import ErrorBanner from '@/components/common/ErrorBanner';
 import { confirmPasswordReset } from '@/api/auth';
 import { useAuth } from '@/app/providers/AuthBootstrap';
+import type { ApiError } from '@/api/http';
 
 /**
  * Password reset confirmation page.
@@ -36,8 +37,15 @@ function ResetPassword() {
     try {
       await confirmPasswordReset({ token, newPassword: password });
       setSuccess(true);
-    } catch {
-      setError('Impossible de reinitialiser le mot de passe.');
+    } catch (err) {
+      const apiError = err as ApiError;
+      if (apiError.code === 'TOKEN_INVALID') {
+        setError('Lien invalide ou expire.');
+      } else if (apiError.code === 'NETWORK_ERROR') {
+        setError('Impossible de contacter le serveur.');
+      } else {
+        setError('Impossible de reinitialiser le mot de passe.');
+      }
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import Loading from '@/components/common/Loading';
 import { useAuth } from '@/app/providers/AuthBootstrap';
+import { isProfileComplete } from '@/utils/profile';
 
 /**
  * Guarded route wrapper.
@@ -25,8 +26,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  if (!user.onboarding_completed_at && location.pathname !== '/profile') {
-    return <Navigate to="/profile" replace />;
+  if (!isProfileComplete(user) && location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace />;
   }
 
   return <>{children}</>;

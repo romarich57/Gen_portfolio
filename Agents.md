@@ -8,7 +8,7 @@ Auth = **cookies HttpOnly** : Access JWT (15 min) + Refresh opaque **hashé en D
 Frontend = **React** en **TypeScript (strict)**.
 Email = **SMTP Gmail (App Password)**.
 Téléphone = **Twilio Verify**.
-MFA = **TOTP obligatoire pour tous**, mais administrable par l’admin (option globale + option par user).
+MFA = **TOTP optionnelle par défaut**, administrable par l’admin (option globale + option par user).
 
 Billing = **Stripe** (abonnements mensuels, TVA via Stripe Tax, Customer Portal, attribution de rôles via webhook signé + idempotency).
 Object Storage = **OVH Object Storage S3-compatible** (bucket privé), uploads/downloads via **pre-signed URLs** (courtes), lifecycle purge.

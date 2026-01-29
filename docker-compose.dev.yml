@@ -1,0 +1,157 @@
+# Docker Compose for Development with HTTPS
+# Usage: docker compose -f docker-compose.dev.yml up
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: saas_builder_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saas_builder
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-dev-net
+
+  # MinIO S3-compatible storage
+  minio:
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    container_name: saas_builder_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: [ "CMD", "mc", "ready", "local" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-dev-net
+
+  # MinIO bucket initialization
+  minio-init:
+    image: minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c " until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done; mc mb -p local/app-dev || true; mc anonymous set none local/app-dev || true; exit 0; "
+    networks:
+      - saas-dev-net
+
+  # Backend API
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.dev
+    container_name: saas_builder_backend
+    environment:
+      NODE_ENV: development
+      PORT: 4100
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/saas_builder?schema=public
+      CORS_ORIGINS: https://localhost:3000
+      APP_BASE_URL: https://localhost:3000
+      APP_URL: https://localhost:3000
+      OAUTH_REDIRECT_BASE_URL: https://localhost:4000
+      TRUST_PROXY: "1"
+      HTTPS_ENABLED: "true"
+      HTTPS_CERT_PATH: /app/certs/localhost.crt
+      HTTPS_KEY_PATH: /app/certs/localhost.key
+      LOG_LEVEL: info
+      TWILIO_VERIFY_MODE: ${TWILIO_VERIFY_MODE:-mock}
+      # Secrets (override in .env or docker-compose.override.yml)
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-dev_access_secret_change_me}
+      MFA_CHALLENGE_SECRET: ${MFA_CHALLENGE_SECRET:-dev_mfa_secret_change_me}
+      TOKEN_HASH_SECRET: ${TOKEN_HASH_SECRET:-dev_token_hash_change_me}
+      BACKUP_CODE_PEPPER: ${BACKUP_CODE_PEPPER:-dev_backup_pepper_change_me}
+      COOKIE_SIGNING_SECRET: ${COOKIE_SIGNING_SECRET:-dev_cookie_secret_change_me}
+      MFA_MASTER_KEY: ${MFA_MASTER_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      # S3 (MinIO)
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      S3_BUCKET: app-dev
+      S3_FORCE_PATH_STYLE: "true"
+      S3_USE_SSL: "false"
+    volumes:
+      - ./apps/backend/src:/app/src:ro
+      - ./apps/backend/prisma:/app/prisma:ro
+      - ./apps/backend/tests:/app/tests:ro
+      - ./ops/certs:/app/certs:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:4100/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-dev-net
+
+  # Frontend (Vite dev server)
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.dev
+    container_name: saas_builder_frontend
+    environment:
+      VITE_API_BASE_URL: https://localhost:4000
+      VITE_APP_BASE_URL: https://localhost:3000
+    volumes:
+      - ./apps/frontend/src:/app/src:ro
+      - ./apps/frontend/index.html:/app/index.html:ro
+    depends_on:
+      - backend
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:5173" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-dev-net
+
+  # Nginx reverse proxy with SSL
+  nginx:
+    build:
+      context: ./ops/nginx
+      dockerfile: Dockerfile
+    container_name: saas_builder_nginx
+    ports:
+      - "3000:3000"
+      - "4000:4000"
+    volumes:
+      - ./ops/certs:/etc/nginx/certs:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - saas-dev-net
+
+networks:
+  saas-dev-net:
+    driver: bridge
+
+volumes:
+  db-data:
+  minio-data:

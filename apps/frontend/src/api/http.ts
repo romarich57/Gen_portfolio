@@ -6,6 +6,8 @@ export type ApiError = {
   message: string;
   requestId?: string;
   status: number;
+  fields?: string[];
+  issues?: { field: string; message: string }[];
 };
 
 export type ApiRequestOptions = RequestInit & {
@@ -13,6 +15,7 @@ export type ApiRequestOptions = RequestInit & {
 };
 
 let authErrorHandler: (() => void) | null = null;
+let csrfErrorHandler: (() => void) | null = null;
 
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -26,6 +29,15 @@ export function setAuthErrorHandler(handler: () => void) {
 }
 
 /**
+ * Register a handler for CSRF errors.
+ * Preconditions: handler is stable and side-effect safe.
+ * Postconditions: handler invoked when CSRF error occurs.
+ */
+export function setCsrfErrorHandler(handler: () => void) {
+  csrfErrorHandler = handler;
+}
+
+/**
  * Normalize API errors from JSON responses.
  * Preconditions: response status not ok.
  * Postconditions: returns a stable error payload.
@@ -34,11 +46,15 @@ function normalizeError(status: number, payload: unknown): ApiError {
   if (typeof payload === 'object' && payload !== null) {
     const errorCode = (payload as { error?: string }).error ?? 'REQUEST_FAILED';
     const requestId = (payload as { request_id?: string }).request_id;
+    const fields = (payload as { fields?: string[] }).fields;
+    const issues = (payload as { issues?: { field: string; message: string }[] }).issues;
     return {
       code: errorCode,
       message: 'Request failed',
       requestId,
-      status
+      status,
+      fields,
+      issues
     };
   }
 
@@ -85,12 +101,21 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, {
-    ...options,
-    method,
-    headers,
-    credentials: 'include'
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      method,
+      headers,
+      credentials: 'include'
+    });
+  } catch {
+    throw {
+      code: 'NETWORK_ERROR',
+      message: 'Network error',
+      status: 0
+    } satisfies ApiError;
+  }
 
   const hasBody = response.status !== 204;
   const text = hasBody ? await response.text() : '';
@@ -99,6 +124,17 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   if (!response.ok) {
     if (response.status === 401 && !options.skipAuthRedirect && authErrorHandler) {
       authErrorHandler();
+    }
+    if (
+      response.status === 403 &&
+      csrfErrorHandler &&
+      payload &&
+      typeof payload === 'object' &&
+      ['CSRF_TOKEN_INVALID', 'CSRF_ORIGIN_INVALID', 'CSRF_ORIGIN_MISSING'].includes(
+        (payload as { error?: string }).error ?? ''
+      )
+    ) {
+      csrfErrorHandler();
     }
     throw normalizeError(response.status, payload);
   }

@@ -4,6 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '@/components/ui/Button';
 import ErrorBanner from '@/components/common/ErrorBanner';
 import { verifyEmail } from '@/api/auth';
+import { useAuth } from '@/app/providers/AuthBootstrap';
+import { isProfileComplete } from '@/utils/profile';
+import type { ApiError } from '@/api/http';
 
 /**
  * Verify email page.
@@ -14,6 +17,7 @@ function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -31,10 +35,15 @@ function VerifyEmail() {
         if (active) {
           setStatus('success');
         }
-      } catch {
+      } catch (err) {
         if (active) {
           setStatus('error');
-          setError('Lien de verification invalide.');
+          const apiError = err as ApiError;
+          if (apiError.code === 'NETWORK_ERROR') {
+            setError('Impossible de contacter le serveur.');
+          } else {
+            setError('Lien de verification invalide.');
+          }
         }
       }
     };
@@ -46,6 +55,15 @@ function VerifyEmail() {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (status !== 'success' || !user) return;
+    if (isProfileComplete(user)) {
+      navigate('/dashboard');
+    } else {
+      navigate('/complete-profile');
+    }
+  }, [status, user, navigate]);
+
   return (
     <div className="mx-auto max-w-md space-y-4">
       <h1 className="text-2xl font-display font-semibold">Verification email</h1>
@@ -55,11 +73,11 @@ function VerifyEmail() {
         <div className="space-y-3">
           <p className="text-sm text-mutedForeground">
             {token
-              ? "Email verifie. Continuez l'onboarding."
+              ? "Email verifie. Vous pouvez vous connecter."
               : "Si votre compte existe, un email de verification a ete envoye."}
           </p>
-          <Button onClick={() => navigate(token ? '/verify-phone' : '/login')}>
-            {token ? 'Verifier mon telephone' : 'Se connecter'}
+          <Button onClick={() => navigate('/login')}>
+            Se connecter
           </Button>
         </div>
       )}

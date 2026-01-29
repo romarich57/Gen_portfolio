@@ -5,6 +5,7 @@ import router from './router';
 import QueryProvider from './providers/QueryProvider';
 import ThemeProvider from './providers/ThemeProvider';
 import AuthBootstrap from './providers/AuthBootstrap';
+import { ToastProvider } from '@/components/common/ToastProvider';
 
 /**
  * Root application component.
@@ -13,13 +14,15 @@ import AuthBootstrap from './providers/AuthBootstrap';
  */
 function App() {
   return (
-    <QueryProvider>
-      <ThemeProvider>
-        <AuthBootstrap>
-          <RouterProvider router={router} />
-        </AuthBootstrap>
-      </ThemeProvider>
-    </QueryProvider>
+    <ToastProvider>
+      <QueryProvider>
+        <ThemeProvider>
+          <AuthBootstrap>
+            <RouterProvider router={router} />
+          </AuthBootstrap>
+        </ThemeProvider>
+      </QueryProvider>
+    </ToastProvider>
   );
 }
 

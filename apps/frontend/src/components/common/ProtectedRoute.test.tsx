@@ -52,10 +52,10 @@ describe('ProtectedRoute', () => {
         id: '1',
         email: 'a@b.c',
         roles: [],
-        first_name: null,
-        last_name: null,
-        username: null,
-        nationality: null,
+        first_name: 'Ada',
+        last_name: 'Lovelace',
+        username: 'ada_l',
+        nationality: 'FR',
         locale: null,
         avatar_url: null,
         onboarding_completed_at: new Date().toISOString(),
@@ -84,7 +84,7 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Secret')).toBeInTheDocument();
   });
 
-  it('redirects to profile when onboarding is incomplete', () => {
+  it('redirects to complete-profile when profile is incomplete', () => {
     const authValue = createAuthValue({
       user: {
         id: '2',
@@ -103,7 +103,7 @@ describe('ProtectedRoute', () => {
 
     render(
       <AuthContext.Provider value={authValue}>
-        <MemoryRouter initialEntries={['/dashboard', '/profile']}>
+        <MemoryRouter initialEntries={['/dashboard', '/complete-profile']}>
           <Routes>
             <Route
               path="/dashboard"
@@ -113,12 +113,12 @@ describe('ProtectedRoute', () => {
                 </ProtectedRoute>
               }
             />
-            <Route path="/profile" element={<div>Profile</div>} />
+            <Route path="/complete-profile" element={<div>Complete Profile</div>} />
           </Routes>
         </MemoryRouter>
       </AuthContext.Provider>
     );
 
-    expect(screen.getByText('Profile')).toBeInTheDocument();
+    expect(screen.getByText('Complete Profile')).toBeInTheDocument();
   });
 });

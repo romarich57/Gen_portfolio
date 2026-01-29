@@ -8,8 +8,16 @@ export type LoginResult = { ok: true } | { error: string };
  * Preconditions: email/password validated client-side.
  * Postconditions: backend sends verification email.
  */
-export async function register(params: { email: string; password: string }) {
-  return apiRequest<{ ok?: boolean }>(`/auth/register`, {
+export async function register(params: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  nationality: string;
+  captchaToken?: string;
+}) {
+  return apiRequest<{ ok?: boolean; email_sent?: boolean }>(`/auth/register`, {
     method: 'POST',
     body: JSON.stringify(params),
     skipAuthRedirect: true
@@ -34,7 +42,7 @@ export async function verifyEmail(token: string) {
  * Preconditions: CSRF token fetched.
  * Postconditions: cookies set or MFA challenge required.
  */
-export async function login(params: { email: string; password: string }) {
+export async function login(params: { identifier: string; password: string }) {
   return apiRequest<LoginResult>(`/auth/login`, {
     method: 'POST',
     body: JSON.stringify(params),
@@ -72,7 +80,7 @@ export async function requestPasswordReset(params: { email: string }) {
  * Postconditions: neutral response returned.
  */
 export async function resendEmailVerification(params: { email: string }) {
-  return apiRequest<{ ok?: boolean }>(`/auth/email/resend`, {
+  return apiRequest<{ ok?: boolean; email_sent?: boolean }>(`/auth/email/resend`, {
     method: 'POST',
     body: JSON.stringify(params),
     skipAuthRedirect: true
@@ -97,7 +105,7 @@ export async function confirmPasswordReset(params: { token: string; newPassword:
  * Preconditions: onboarding cookie stage=phone.
  * Postconditions: OTP sent to phone.
  */
-export async function startPhoneVerify(params: { phoneE164: string }) {
+export async function startPhoneVerify(params: { phoneE164: string; country?: string }) {
   return apiRequest<{ ok?: boolean }>(`/auth/phone/start`, {
     method: 'POST',
     body: JSON.stringify(params),
@@ -110,7 +118,7 @@ export async function startPhoneVerify(params: { phoneE164: string }) {
  * Preconditions: OTP code received by user.
  * Postconditions: onboarding advances.
  */
-export async function checkPhoneVerify(params: { phoneE164: string; code: string }) {
+export async function checkPhoneVerify(params: { phoneE164: string; code: string; country?: string }) {
   return apiRequest<{ ok?: boolean }>(`/auth/phone/check`, {
     method: 'POST',
     body: JSON.stringify(params),

@@ -4,10 +4,14 @@
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_VERIFY_SERVICE_SID`
+- `TWILIO_VERIFY_MODE` = `live` (prod) | `mock` (dev uniquement)
+
+> En mode `mock`, les SMS ne sont pas envoyés. Code de test: `000000`.
 
 ## Endpoints
-- `POST /auth/phone/start`
-- `POST /auth/phone/check`
+- `POST /auth/phone/start` (body: `phoneE164`, `country` optionnel)
+- `POST /auth/phone/check` (body: `phoneE164`, `code`, `country` optionnel)
+> Vérification téléphone optionnelle, accessible après connexion (Profil > Sécurité).
 
 ## Limites / lockouts
 - Start: 2 req/min/IP (configurable via `app_settings.otp_rate_limits`)

@@ -7,6 +7,7 @@ import Label from '@/components/ui/Label';
 import ErrorBanner from '@/components/common/ErrorBanner';
 import { startMfaSetup, confirmMfaSetup } from '@/api/auth';
 import { useAuth } from '@/app/providers/AuthBootstrap';
+import type { ApiError } from '@/api/http';
 
 /**
  * MFA setup page with backup codes.
@@ -33,8 +34,13 @@ function MfaSetup() {
         if (active) {
           setOtpauthUrl(response.otpauthUrl);
         }
-      } catch {
-        if (active) {
+      } catch (err) {
+        if (!active) return;
+        const apiError = err as ApiError;
+        if (apiError.code === 'AUTH_REQUIRED') {
+          setError('Session expiree. Merci de vous reconnecter.');
+          navigate('/login');
+        } else {
           setError('Impossible de demarrer la configuration MFA.');
         }
       }
@@ -80,8 +86,24 @@ function MfaSetup() {
     try {
       const response = await confirmMfaSetup({ code });
       setBackupCodes(response.backupCodes);
-    } catch {
-      setError('Code MFA invalide.');
+    } catch (err) {
+      const apiError = err as ApiError;
+      if (apiError.code === 'AUTH_REQUIRED') {
+        setError('Session expiree. Merci de vous reconnecter.');
+        navigate('/login');
+      } else if (apiError.code === 'MFA_SETUP_REQUIRED') {
+        setError('Configuration MFA manquante. Rechargez la page.');
+      } else if (apiError.code === 'NETWORK_ERROR') {
+        setError('Impossible de contacter le serveur.');
+      } else if (
+        apiError.code === 'CSRF_TOKEN_INVALID' ||
+        apiError.code === 'CSRF_ORIGIN_INVALID' ||
+        apiError.code === 'CSRF_ORIGIN_MISSING'
+      ) {
+        setError('Session CSRF expiree. Rechargez la page.');
+      } else {
+        setError('Code MFA invalide.');
+      }
     } finally {
       setLoading(false);
     }
@@ -89,8 +111,17 @@ function MfaSetup() {
 
   const handleFinish = async () => {
     if (!acknowledged) return;
-    await refreshUser();
-    navigate('/dashboard');
+    setError(null);
+    try {
+      const refreshed = await refreshUser();
+      if (!refreshed) {
+        setError('Impossible de recuperer la session.');
+        return;
+      }
+      navigate('/dashboard');
+    } catch {
+      setError('Impossible de recuperer la session.');
+    }
   };
 
   return (
@@ -159,6 +190,10 @@ function MfaSetup() {
           </Button>
         </div>
       )}
+
+      <Button variant="ghost" onClick={() => navigate('/profile')} className="w-full text-xs">
+        Retour au profil
+      </Button>
     </div>
   );
 }

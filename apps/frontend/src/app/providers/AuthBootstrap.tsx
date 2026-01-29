@@ -1,10 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { fetchCsrfToken, setCsrfToken as storeCsrfToken } from '@/api/csrf';
 import { getMe } from '@/api/me';
 import { logout as logoutRequest } from '@/api/auth';
 import { setAuthErrorHandler } from '@/api/http';
+import type { ApiError } from '@/api/http';
 import type { UserProfile } from '@/api/types';
+import { useToast } from '@/components/common/ToastProvider';
 
 export type AuthContextValue = {
   user: UserProfile | null;
@@ -26,17 +28,32 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
+  const initErrorShownRef = useRef(false);
+
+  const showInitErrorOnce = useCallback(
+    (message: string) => {
+      if (initErrorShownRef.current) return;
+      initErrorShownRef.current = true;
+      showToast(message, 'error');
+    },
+    [showToast]
+  );
 
   const refreshUser = useCallback(async () => {
     try {
       const response = await getMe();
       setUser(response.profile);
       return response.profile;
-    } catch {
+    } catch (err) {
       setUser(null);
-      return null;
+      const apiError = err as ApiError;
+      if (apiError?.status === 401 || apiError?.code === 'AUTH_REQUIRED') {
+        return null;
+      }
+      throw err;
     }
-  }, []);
+  }, [showToast]);
 
   const logout = useCallback(async () => {
     try {
@@ -63,6 +80,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
       } catch {
         if (active) {
           setCsrfToken(null);
+          showInitErrorOnce('Impossible de contacter le serveur.');
         }
       }
 
@@ -71,9 +89,13 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
         if (active) {
           setUser(response.profile);
         }
-      } catch {
+      } catch (err) {
         if (active) {
           setUser(null);
+          const apiError = err as ApiError;
+          if (apiError?.code && apiError.code !== 'AUTH_REQUIRED') {
+            showInitErrorOnce('Impossible de charger la session.');
+          }
         }
       } finally {
         if (active) {

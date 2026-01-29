@@ -6,3 +6,6 @@ coverage
 dist
 build
 .DS_Store
+
+# SSL certificates
+ops/certs/

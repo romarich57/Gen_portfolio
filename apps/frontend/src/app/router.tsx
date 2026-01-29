@@ -11,12 +11,16 @@ import VerifyEmail from '@/pages/public/VerifyEmail';
 import ForgotPassword from '@/pages/public/ForgotPassword';
 import ResetPassword from '@/pages/public/ResetPassword';
 import OAuthCallback from '@/pages/public/OAuthCallback';
+import Terms from '@/pages/public/Terms';
+import Privacy from '@/pages/public/Privacy';
 import Dashboard from '@/pages/private/Dashboard';
 import Profile from '@/pages/private/Profile';
 import Billing from '@/pages/private/Billing';
 import PhoneVerify from '@/pages/private/PhoneVerify';
 import MfaSetup from '@/pages/private/MfaSetup';
 import MfaChallenge from '@/pages/private/MfaChallenge';
+import ServiceStatus from '@/pages/private/ServiceStatus';
+import CompleteProfile from '@/pages/private/CompleteProfile';
 
 /**
  * Application router definition.
@@ -36,8 +40,8 @@ const router = createBrowserRouter([
       { path: 'forgot-password', element: <ForgotPassword /> },
       { path: 'reset-password', element: <ResetPassword /> },
       { path: 'oauth/callback', element: <OAuthCallback /> },
-      { path: 'verify-phone', element: <PhoneVerify /> },
-      { path: 'setup-mfa', element: <MfaSetup /> },
+      { path: 'terms', element: <Terms /> },
+      { path: 'privacy', element: <Privacy /> },
       { path: 'mfa-challenge', element: <MfaChallenge /> }
     ]
   },
@@ -50,8 +54,12 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <Dashboard /> },
+      { path: 'complete-profile', element: <CompleteProfile /> },
       { path: 'profile', element: <Profile /> },
-      { path: 'billing', element: <Billing /> }
+      { path: 'verify-phone', element: <PhoneVerify /> },
+      { path: 'setup-mfa', element: <MfaSetup /> },
+      { path: 'billing', element: <Billing /> },
+      { path: 'admin/status', element: <ServiceStatus /> }
     ]
   },
   {

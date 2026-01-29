@@ -6,6 +6,7 @@ import Label from '@/components/ui/Label';
 import ErrorBanner from '@/components/common/ErrorBanner';
 import { requestPasswordReset } from '@/api/auth';
 import { useAuth } from '@/app/providers/AuthBootstrap';
+import type { ApiError } from '@/api/http';
 
 /**
  * Forgot password request page.
@@ -27,8 +28,15 @@ function ForgotPassword() {
     try {
       await requestPasswordReset({ email });
       setSubmitted(true);
-    } catch {
-      setError('Impossible de traiter la demande.');
+    } catch (err) {
+      const apiError = err as ApiError;
+      if (apiError.code === 'CAPTCHA_REQUIRED') {
+        setError('Verification anti-bot requise. Reessayez plus tard.');
+      } else if (apiError.code === 'NETWORK_ERROR') {
+        setError('Impossible de contacter le serveur.');
+      } else {
+        setError('Impossible de traiter la demande.');
+      }
     } finally {
       setLoading(false);
     }

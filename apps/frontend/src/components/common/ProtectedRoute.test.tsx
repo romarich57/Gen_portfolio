@@ -58,6 +58,8 @@ describe('ProtectedRoute', () => {
         nationality: 'FR',
         locale: null,
         avatar_url: null,
+        mfa_enabled: true,
+        mfa_required: false,
         onboarding_completed_at: new Date().toISOString(),
         deleted_at: null
       },
@@ -96,6 +98,8 @@ describe('ProtectedRoute', () => {
         nationality: null,
         locale: null,
         avatar_url: null,
+        mfa_enabled: false,
+        mfa_required: false,
         onboarding_completed_at: null,
         deleted_at: null
       }
@@ -120,5 +124,45 @@ describe('ProtectedRoute', () => {
     );
 
     expect(screen.getByText('Complete Profile')).toBeInTheDocument();
+  });
+
+  it('redirects to setup-mfa when MFA is required', () => {
+    const authValue = createAuthValue({
+      user: {
+        id: '3',
+        email: 'mfa@b.c',
+        roles: [],
+        first_name: 'Mfa',
+        last_name: 'User',
+        username: 'mfa_user',
+        nationality: 'FR',
+        locale: null,
+        avatar_url: null,
+        mfa_enabled: false,
+        mfa_required: true,
+        onboarding_completed_at: new Date().toISOString(),
+        deleted_at: null
+      }
+    });
+
+    render(
+      <AuthContext.Provider value={authValue}>
+        <MemoryRouter initialEntries={['/dashboard', '/setup-mfa']}>
+          <Routes>
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <div>Dashboard</div>
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/setup-mfa" element={<div>Setup MFA</div>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    );
+
+    expect(screen.getByText('Setup MFA')).toBeInTheDocument();
   });
 });

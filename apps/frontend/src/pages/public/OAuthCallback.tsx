@@ -26,10 +26,8 @@ function OAuthCallback() {
   useEffect(() => {
     const next = searchParams.get('next');
     const allowedNext = new Set([
-      'verify-email',
-      'verify-phone',
-      'setup-mfa',
       'mfa-challenge',
+      'setup-mfa',
       'dashboard',
       'complete-profile'
     ]);

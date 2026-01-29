@@ -22,6 +22,23 @@ services:
     networks:
       - saas-dev-net
 
+  # Redis (rate limit store)
+  redis:
+    image: redis:7.4.1-alpine
+    container_name: saas_builder_redis
+    command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning" ]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-dev-net
+
   # MinIO S3-compatible storage
   minio:
     image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
@@ -81,6 +98,7 @@ services:
       BACKUP_CODE_PEPPER: ${BACKUP_CODE_PEPPER:-dev_backup_pepper_change_me}
       COOKIE_SIGNING_SECRET: ${COOKIE_SIGNING_SECRET:-dev_cookie_secret_change_me}
       MFA_MASTER_KEY: ${MFA_MASTER_KEY:-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=}
+      REDIS_URL: redis://redis:6379
       # S3 (MinIO)
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
@@ -96,6 +114,8 @@ services:
       - ./ops/certs:/app/certs:ro
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
@@ -155,3 +175,4 @@ networks:
 volumes:
   db-data:
   minio-data:
+  redis-data:

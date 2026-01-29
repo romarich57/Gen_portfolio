@@ -103,7 +103,7 @@ function ServiceStatus() {
   }
 
   const { services } = data;
-  const hasIssue = !services.smtp.ok || !services.s3.ok;
+  const hasIssue = !services.smtp.ok || !services.s3.ok || !services.redis.ok;
   const history = historyData?.history ?? [];
   const computeAverage = (values: Array<number | null>) => {
     const filtered = values.filter((value): value is number => typeof value === 'number');
@@ -113,6 +113,7 @@ function ServiceStatus() {
   };
   const smtpAvg = computeAverage(history.map((entry) => entry.services.smtp.latency_ms ?? null));
   const s3Avg = computeAverage(history.map((entry) => entry.services.s3.latency_ms ?? null));
+  const redisAvg = computeAverage(history.map((entry) => entry.services.redis.latency_ms ?? null));
   const historyErrorMessage =
     (historyFetchError as ApiError | undefined)?.code === 'NETWORK_ERROR'
       ? 'Impossible de contacter le serveur.'
@@ -123,7 +124,7 @@ function ServiceStatus() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-semibold">Statut des services</h1>
-          <p className="text-sm text-mutedForeground">Verification SMTP/S3 pour le support.</p>
+          <p className="text-sm text-mutedForeground">Verification SMTP/S3/Redis pour le support.</p>
         </div>
         <Button variant="outline" onClick={() => refetch()}>
           Rafraichir
@@ -131,15 +132,16 @@ function ServiceStatus() {
       </div>
 
       {hasIssue && (
-        <ErrorBanner message="Un ou plusieurs services sont indisponibles. Verifiez la configuration SMTP/S3." />
+        <ErrorBanner message="Un ou plusieurs services sont indisponibles. Verifiez SMTP/S3/Redis." />
       )}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <ServiceStatusCard label="SMTP (email)" status={services.smtp} />
         <ServiceStatusCard label="S3 (stockage)" status={services.s3} />
+        <ServiceStatusCard label="Redis (rate limit)" status={services.redis} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
             <h3 className="text-lg font-display font-semibold">Latence moyenne SMTP</h3>
@@ -158,6 +160,17 @@ function ServiceStatus() {
           <CardContent>
             <p className="text-2xl font-display font-semibold">
               {s3Avg !== null ? `${s3Avg} ms` : 'n/a'}
+            </p>
+            <p className="text-xs text-mutedForeground">Moyenne sur l'historique recent.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <h3 className="text-lg font-display font-semibold">Latence moyenne Redis</h3>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-display font-semibold">
+              {redisAvg !== null ? `${redisAvg} ms` : 'n/a'}
             </p>
             <p className="text-xs text-mutedForeground">Moyenne sur l'historique recent.</p>
           </CardContent>
@@ -193,6 +206,7 @@ function ServiceStatus() {
                   <th className="py-2 pr-4">Statut</th>
                   <th className="py-2 pr-4">SMTP</th>
                   <th className="py-2 pr-4">S3</th>
+                  <th className="py-2 pr-4">Redis</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
@@ -215,6 +229,9 @@ function ServiceStatus() {
                         </td>
                         <td className="py-2 pr-4 text-mutedForeground">
                           {entry.services.s3.ok ? 'OK' : 'KO'} — {entry.services.s3.latency_ms ?? 'n/a'} ms
+                        </td>
+                        <td className="py-2 pr-4 text-mutedForeground">
+                          {entry.services.redis.ok ? 'OK' : 'KO'} — {entry.services.redis.latency_ms ?? 'n/a'} ms
                         </td>
                       </tr>
                     );

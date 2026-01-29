@@ -13,15 +13,15 @@ import type { ApiError } from '@/api/http';
 const upgradeOptions = [
   {
     code: 'PREMIUM' as const,
-    title: 'Premium',
+    title: 'Elite',
     price: '10 EUR / mois',
-    description: '5 projets par mois'
+    description: 'Bâtissez jusqu\'à 5 projets avec prompts IA experts.'
   },
   {
     code: 'VIP' as const,
     title: 'VIP',
     price: '30 EUR / mois',
-    description: 'Projets illimites'
+    description: 'Projets illimités + système de crédits pour calculs intensifs.'
   }
 ];
 
@@ -120,19 +120,21 @@ function Billing() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-display font-semibold">Billing</h1>
-        <p className="text-sm text-mutedForeground">Gerez votre abonnement Stripe.</p>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-display font-black tracking-tighter uppercase text-foreground">Abonnement & Crédits</h1>
+        <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest">Gérez la puissance de votre architecte IA.</p>
       </div>
 
       {error && <ErrorBanner message={error} />}
 
-      <Card>
+      <Card className="animate-fadeUp shadow-2xl shadow-primary/5">
         <CardHeader>
-          <Badge>Plan actuel</Badge>
-          <h2 className="text-2xl font-display font-semibold">{planLabel}</h2>
-          <p className="text-sm text-mutedForeground">
-            {projectsLimit === null ? 'Projets illimites' : `${projectsLimit} projets / mois`}
+          <div className="flex gap-2 mb-2">
+            <Badge className="bg-primary/10 text-primary border-primary/20 rounded-none uppercase text-[10px] font-bold tracking-widest">Plan actuel</Badge>
+          </div>
+          <h2 className="text-2xl font-display font-black tracking-tighter uppercase text-foreground">{planLabel}</h2>
+          <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mt-1">
+            {projectsLimit === null ? 'Génération Illimitée' : `${projectsLimit} Projets Actifs`}
           </p>
         </CardHeader>
         <CardContent>
@@ -153,18 +155,19 @@ function Billing() {
         {upgradeOptions.map((option) => (
           <Card key={option.code}>
             <CardHeader>
-              <h3 className="text-xl font-display font-semibold">{option.title}</h3>
-              <p className="text-sm text-mutedForeground">{option.price}</p>
+              <h3 className="text-xl font-display font-black tracking-tighter uppercase text-foreground">{option.title}</h3>
+              <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{option.price}</p>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-mutedForeground">{option.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{option.description}</p>
             </CardContent>
             <CardFooter>
               <Button
+                className="w-full rounded-none font-mono text-[10px] tracking-widest h-10 uppercase transition-all"
                 onClick={() => handleCheckout(option.code)}
                 disabled={loading || !csrfToken || planLabel === option.code}
               >
-                {planLabel === option.code ? 'Plan actuel' : 'Upgrade'}
+                {planLabel === option.code ? 'Actif' : 'Upgrade System'}
               </Button>
             </CardFooter>
           </Card>

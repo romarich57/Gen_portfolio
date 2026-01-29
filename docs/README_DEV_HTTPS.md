@@ -10,6 +10,7 @@ Cette methode utilise `docker-compose.dev.yml` et expose:
 - Frontend: https://localhost:3000
 - API: https://localhost:4000
 - MinIO: http://localhost:9001
+- Redis: localhost:6379
 
 Etapes:
 ```bash

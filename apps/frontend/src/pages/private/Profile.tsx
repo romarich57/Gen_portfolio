@@ -107,7 +107,7 @@ function Profile() {
       const apiError = err as ApiError;
       if (apiError.code === 'NETWORK_ERROR') {
         setProfileError('Impossible de contacter le serveur.');
-      } else if (apiError.code === 'USERNAME_TAKEN') {
+      } else if (apiError.code === 'USERNAME_TAKEN' || apiError.code === 'USERNAME_UNAVAILABLE') {
         setProfileError('Ce nom d\'utilisateur est deja pris.');
       } else if (apiError.code === 'ONBOARDING_REQUIRED') {
         setProfileError('Terminez d\'abord l\'onboarding obligatoire.');
@@ -145,7 +145,7 @@ function Profile() {
       const apiError = err as ApiError;
       if (apiError.code === 'NETWORK_ERROR') {
         setOnboardingError('Impossible de contacter le serveur.');
-      } else if (apiError.code === 'USERNAME_TAKEN') {
+      } else if (apiError.code === 'USERNAME_TAKEN' || apiError.code === 'USERNAME_UNAVAILABLE') {
         setOnboardingError('Ce nom d\'utilisateur est deja pris.');
       } else if (apiError.code === 'VALIDATION_ERROR') {
         setOnboardingFieldErrors(mapFieldErrors(apiError));

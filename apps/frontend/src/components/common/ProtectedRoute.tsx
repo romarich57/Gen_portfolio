@@ -30,6 +30,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/complete-profile" replace />;
   }
 
+  if (user.mfa_required && !user.mfa_enabled && location.pathname !== '/setup-mfa') {
+    return <Navigate to="/setup-mfa" replace />;
+  }
+
   return <>{children}</>;
 }
 

@@ -14,7 +14,7 @@ Variables d’environnement:
 - Pas de secrets dans le repo.
 
 ## Templates
-- **Vérification email**: lien vers `${OAUTH_REDIRECT_BASE_URL}/auth/email/verify?token=...`
+- **Vérification email**: lien frontend `/verify-email?token=...`
 - **Reset password**: lien frontend `/reset-password?token=...`
 
 ## Anti‑phishing

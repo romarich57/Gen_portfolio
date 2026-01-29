@@ -12,6 +12,7 @@ export type ServiceStatusResponse = {
   services: {
     smtp: ServiceStatus;
     s3: ServiceStatus;
+    redis: ServiceStatus;
   };
 };
 
@@ -25,6 +26,7 @@ export type ServiceHistoryEntry = {
   services: {
     smtp: ServiceStatus;
     s3: ServiceStatus;
+    redis: ServiceStatus;
   };
 };
 

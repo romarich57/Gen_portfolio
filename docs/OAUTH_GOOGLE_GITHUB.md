@@ -15,7 +15,8 @@
 - Email vérifié via endpoint `/user/emails`
 
 ## Linking rules
-- Email OAuth considéré comme vérifié (Google/GitHub).
+- Email OAuth doit être **vérifié** côté provider.
+- Si l'email n'est pas vérifié: création/link du compte **sans session**, envoi d'email de vérification, et redirection `status=error` (`reason=email_not_verified`).
 - Si user existe → link du provider au compte existant.
 - Sinon création user avec profil incomplet → UI force `CompleteProfile` (prénom/nom/pseudo/nationalité).
 
@@ -24,6 +25,7 @@
 - Vous pouvez surcharger par provider:
   - `OAUTH_GOOGLE_REDIRECT_URI`
   - `OAUTH_GITHUB_REDIRECT_URI`
+- Redirection front: `/oauth/callback?next=complete-profile|mfa-challenge|setup-mfa|dashboard`
 
 ### Redirect URIs à enregistrer (dev HTTPS)
 Google:

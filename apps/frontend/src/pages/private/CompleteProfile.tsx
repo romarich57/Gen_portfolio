@@ -80,7 +80,7 @@ function CompleteProfile() {
       navigate('/dashboard');
     } catch (err) {
       const apiError = err as ApiError;
-      if (apiError.code === 'USERNAME_TAKEN') {
+      if (apiError.code === 'USERNAME_TAKEN' || apiError.code === 'USERNAME_UNAVAILABLE') {
         setError('Ce nom d\'utilisateur est deja pris.');
       } else if (apiError.code === 'VALIDATION_ERROR') {
         setFieldErrors(buildFieldErrors());

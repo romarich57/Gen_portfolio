@@ -13,7 +13,9 @@
 - `POST /auth/mfa/verify` accepte TOTP ou backup code
 - Mise à jour `last_used_at`
 
-## MFA optionnelle (par défaut)
-- Global via `feature_flags.mfa_required_global` (si activé, MFA imposée)
-- Override user via `users.mfa_required_override` (respecte `feature_flags.allow_disable_mfa`)
-- Admin endpoints: `PUT /admin/security/mfa-flags`, `PATCH /admin/users/:id/mfa-override`
+## Politique MFA (admin)
+- `feature_flags.mfa_required_global=true` impose la configuration MFA avant accès complet.
+- `users.mfa_required_override` peut forcer/relâcher la règle au niveau user.
+- Tant que `mfa_enabled=false` et MFA requise:
+  - `/auth/login` et `/auth/refresh` renvoient `MFA_SETUP_REQUIRED`.
+  - L’accès applicatif est bloqué (gate backend + redirection UI).

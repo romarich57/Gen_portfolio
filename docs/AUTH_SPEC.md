@@ -42,7 +42,8 @@ Input:
 Output:
 - `200` + cookies si OK
 - `200` + `MFA_CHALLENGE_REQUIRED` si MFA activée
-- `403` + code `EMAIL_NOT_VERIFIED` | `MFA_SETUP_REQUIRED`
+- `403` + `MFA_SETUP_REQUIRED` si MFA requise (flag admin) et non configurée
+- `403` + code `EMAIL_NOT_VERIFIED`
 - `401` neutre si mauvais identifiants
 Rate limit: 5 req/min/IP + 5 req/min/account.
 Audit: `LOGIN_SUCCESS` / `LOGIN_FAIL` (metadata `reason`).
@@ -55,6 +56,7 @@ Audit: `LOGOUT`.
 Rotation refresh + nouveaux cookies.
 - `401` si expiré/révoqué
 - `401` + `REFRESH_REUSE_DETECTED` si réutilisation
+- `403` + `MFA_SETUP_REQUIRED` si MFA requise (flag admin) et non configurée
 Rate limit: 10 req/min/session.
 Audit: `REFRESH_ROTATED`.
 
@@ -89,7 +91,7 @@ Lockout si trop d’essais (`PHONE_VERIFY_LOCKED`).
 Audit: `PHONE_VERIFIED` / `PHONE_VERIFY_FAILED` / `PHONE_VERIFY_LOCKED`.
 
 ### POST /auth/mfa/setup/start
-Nécessite cookie onboarding stage `mfa`.
+Nécessite session authentifiée (Profil > Sécurité).
 Retourne `otpauthUrl`.
 Audit: `MFA_SETUP_START`.
 
@@ -108,15 +110,16 @@ Redirection vers Google/GitHub avec PKCE + state/nonce.
 Audit: `OAUTH_START`.
 
 ### GET /auth/oauth/:provider/callback
-Échange code + profil. Crée/lie user (email OAuth considéré vérifié). Redirige vers front:
-`/oauth/callback?next=complete-profile|setup-mfa|mfa-challenge|dashboard`.
+Échange code + profil. Crée/lie user (email OAuth **doit être vérifié**). Redirige vers front:
+`/oauth/callback?next=complete-profile|mfa-challenge|setup-mfa|dashboard`.
 Audit: `OAUTH_CALLBACK_SUCCESS/FAIL`.
 
 ## Flows onboarding
 1) Register -> email verify
 2) Email verified -> login
 3) Profil complet requis -> dashboard
-4) Téléphone/MFA optionnels via Profil > Sécurité
+4) MFA imposée si flag admin `mfa_required_global` (ou override user) + setup via `/setup-mfa`
+5) Téléphone optionnel via Profil > Sécurité
 
 ## Admin Security (RBAC admin/super_admin)
 

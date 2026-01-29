@@ -9,3 +9,4 @@ build
 
 # SSL certificates
 ops/certs/
+apps/backend/certs/

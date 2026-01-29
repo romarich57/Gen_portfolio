@@ -27,7 +27,8 @@ const config: Config = {
       },
       fontFamily: {
         display: ['"Space Grotesk"', 'sans-serif'],
-        body: ['"Fraunces"', 'serif']
+        body: ['inter', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace']
       },
       keyframes: {
         fadeUp: {
@@ -41,7 +42,8 @@ const config: Config = {
       },
       animation: {
         fadeUp: 'fadeUp 0.6s ease-out both',
-        glow: 'glow 3s ease-in-out infinite'
+        glow: 'glow 3s ease-in-out infinite',
+        float: 'float 6s ease-in-out infinite'
       }
     }
   },

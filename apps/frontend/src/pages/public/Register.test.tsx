@@ -39,7 +39,7 @@ describe('Register Page', () => {
         expect(screen.getByLabelText(/^Mot de passe$/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Confirmer le mot de passe/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Prenom/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Nom/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/^Nom$/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Pseudo/i)).toBeInTheDocument();
     });
 
@@ -53,8 +53,17 @@ describe('Register Page', () => {
         fireEvent.change(screen.getByLabelText(/Email/i), { target: { value: 'new@example.com' } });
         fireEvent.change(screen.getByLabelText(/^Mot de passe$/i), { target: { value: 'Password1234' } });
         fireEvent.change(screen.getByLabelText(/Confirmer le mot de passe/i), { target: { value: 'mismatch' } });
+        fireEvent.change(screen.getByLabelText(/Prenom/i), { target: { value: 'Ada' } });
+        fireEvent.change(screen.getByLabelText(/^Nom$/i), { target: { value: 'Lovelace' } });
+        fireEvent.change(screen.getByLabelText(/Pseudo/i), { target: { value: 'ada_l' } });
+        fireEvent.change(screen.getByRole('combobox', { name: /Nationalite/i }), { target: { value: 'FR' } });
+        fireEvent.click(screen.getByRole('checkbox'));
 
-        fireEvent.click(screen.getByRole('button', { name: /Creer le compte/i }));
+        const form = screen.getByLabelText(/Email/i).closest('form');
+        if (!form) {
+            throw new Error('Form not found');
+        }
+        fireEvent.submit(form);
 
         await waitFor(() => {
             expect(screen.getByText(/ne correspondent pas/i)).toBeInTheDocument();
@@ -82,7 +91,7 @@ describe('Register Page', () => {
         const terms = screen.getByRole('checkbox');
         fireEvent.click(terms);
 
-        fireEvent.click(screen.getByRole('button', { name: /Creer le compte/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Lancer mon Brief/i }));
 
         await waitFor(() => {
             expect(mockRegister).toHaveBeenCalledWith({

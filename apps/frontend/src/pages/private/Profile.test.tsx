@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 
 import Profile from './Profile';
 import QueryProvider from '@/app/providers/QueryProvider';
@@ -30,6 +31,8 @@ vi.mock('@/app/providers/AuthBootstrap', () => ({
       locale: null,
       roles: ['user'],
       avatar_url: null,
+      mfa_enabled: false,
+      mfa_required: false,
       onboarding_completed_at: null,
       deleted_at: null
     },
@@ -40,11 +43,13 @@ vi.mock('@/app/providers/AuthBootstrap', () => ({
 
 function renderProfile() {
   return render(
-    <ToastProvider>
-      <QueryProvider>
-        <Profile />
-      </QueryProvider>
-    </ToastProvider>
+    <MemoryRouter>
+      <ToastProvider>
+        <QueryProvider>
+          <Profile />
+        </QueryProvider>
+      </ToastProvider>
+    </MemoryRouter>
   );
 }
 
@@ -62,6 +67,8 @@ describe('Profile page', () => {
         locale: null,
         roles: ['user'],
         avatar_url: null,
+        mfa_enabled: false,
+        mfa_required: false,
         onboarding_completed_at: null,
         deleted_at: null
       }

@@ -8,6 +8,8 @@ export type UserProfile = {
   locale: string | null;
   roles: string[];
   avatar_url: string | null;
+  mfa_enabled: boolean;
+  mfa_required: boolean;
   onboarding_completed_at: string | null;
   deleted_at: string | null;
 };

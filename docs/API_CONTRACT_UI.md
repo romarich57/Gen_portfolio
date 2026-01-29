@@ -16,9 +16,10 @@
 - GET /auth/email/verify?token=
 - POST /auth/login
   - Body: `{ identifier, password }` (identifier = email ou username)
-  - 200 `{ ok: true }` or 200 `{ error: "MFA_CHALLENGE_REQUIRED" }`
+  - 200 `{ ok: true }` or 200 `{ error: "MFA_CHALLENGE_REQUIRED" }` (si MFA activée)
   - 401 `{ error: "INVALID_CREDENTIALS" }`
-  - 403 `{ error: "EMAIL_NOT_VERIFIED" | "MFA_SETUP_REQUIRED" }`
+  - 403 `{ error: "EMAIL_NOT_VERIFIED" }`
+  - 403 `{ error: "MFA_SETUP_REQUIRED" }` (si MFA requise admin)
 - POST /auth/logout
 - POST /auth/password/reset/request
 - POST /auth/password/reset/confirm
@@ -30,11 +31,12 @@
 - POST /auth/mfa/verify
 - GET /auth/oauth/:provider/start
 - GET /auth/oauth/:provider/callback
-  - Redirects to `/oauth/callback?next=complete-profile|setup-mfa|mfa-challenge|dashboard`
+  - Redirects to `/oauth/callback?next=complete-profile|mfa-challenge|setup-mfa|dashboard`
   - On error: `/oauth/callback?status=error`
 
 ## /me
 - GET /me
+  - Response inclut `mfa_enabled` + `mfa_required`
 - GET /me/onboarding
 - PATCH /me/onboarding
 - PATCH /me
@@ -50,7 +52,6 @@
 
 ## UI routing rules
 - EMAIL_NOT_VERIFIED => afficher message neutre (pas de resend sans endpoint)
-- MFA_SETUP_REQUIRED => redirect /setup-mfa (si MFA imposée)
 - MFA_CHALLENGE_REQUIRED => redirect /mfa-challenge
 - ONBOARDING_REQUIRED => redirect /complete-profile (profil incomplet)
 

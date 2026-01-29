@@ -7,7 +7,7 @@
 4. **Contrôle d’accès RBAC/ABAC**: middlewares `requireAuth/requireRole/requirePermission/requireOwnership` (deny-by-default).
 5. **Validation entrées & anti-injection**: JSON limit + Prisma ORM (requêtes paramétrées). Validation stricte par endpoint à venir.
 6. **Sécurité HTTP headers**: CSP/HSTS/Referrer/Permissions/NoSniff/Frameguard appliqués globalement.
-7. **API Security**: rate limit global + route-level, anti-enum (erreurs neutres), CORS strict.
+7. **API Security**: rate limit global + route-level, anti-enum (erreurs neutres), CORS strict. Store Redis requis en prod.
 8. **Chiffrement & Data handling**: TLS via Nginx (prod), tokens sensibles hashés, secrets TOTP chiffrés, politique rétention documentée.
 9. **Secrets management**: env obligatoires, aucun secret en repo, validation au boot.
 10. **Logs/Monitoring/Audit**: request_id, logs JSON, audit logs append-only.

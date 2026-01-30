@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 import Button from '@/components/ui/Button';
 import { useTheme } from '@/app/providers/ThemeProvider';
@@ -13,7 +13,7 @@ function ThemeToggle() {
 
   return (
     <Button variant="ghost" size="sm" onClick={toggleTheme} aria-label="Toggle theme">
-      {theme === 'dark' ? 'Light' : 'Dark'}
+      {theme === 'dark' ? '☀️' : '🌙'}
     </Button>
   );
 }

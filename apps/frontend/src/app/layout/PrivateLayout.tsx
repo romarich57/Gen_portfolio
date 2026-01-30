@@ -13,13 +13,7 @@ import { useAuth } from '@/app/providers/AuthBootstrap';
 function PrivateLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = user?.roles?.includes('admin') || user?.roles?.includes('super_admin');
-  const navItems = [
-    { to: '/dashboard', label: 'Dashboard' },
-    { to: '/profile', label: 'Profil' },
-    { to: '/billing', label: 'Billing' },
-    ...(isAdmin ? [{ to: '/admin/status', label: 'Statut services' }] : [])
-  ];
+
 
   const handleLogout = async () => {
     await logout();
@@ -27,42 +21,71 @@ function PrivateLayout() {
   };
 
   return (
-    <div className="min-h-screen">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-card/70 px-6 py-4">
-        <div className="space-y-1">
-          <p className="text-sm text-mutedForeground">Connecte en tant que</p>
-          <p className="font-semibold text-foreground">{user?.email ?? 'Utilisateur'}</p>
-        </div>
+    <div className="min-h-screen bg-background font-body text-foreground">
+      <header className="flex items-center justify-between border-b border-border/50 bg-background/80 px-6 py-4 backdrop-blur-md lg:px-12 sticky top-0 z-50">
+        {/* Left: User Info */}
         <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center p-1 border border-primary/50 bg-primary/10">
+            <div className="size-3 bg-primary rotate-45" />
+          </div>
+          <div className="hidden sm:block">
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground leading-none">Connecté en tant que</p>
+            <p className="text-xs font-mono font-black text-foreground mt-1">{user?.email}</p>
+          </div>
+        </div>
+
+        {/* Center: Dashboard */}
+        <nav className="absolute left-1/2 -translate-x-1/2">
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) =>
+              `font-mono text-xs font-black tracking-[0.3em] uppercase transition-all hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'
+              }`
+            }
+          >
+            DASHBOARD
+            <span className="block h-px w-full bg-primary scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
+          </NavLink>
+        </nav>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            Deconnexion
+          <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
+
+          <Button
+            variant="ghost"
+            size="sm"
+            className="font-mono text-[11px] font-black tracking-[0.2em] uppercase hover:text-primary"
+            onClick={() => navigate('/profile')}
+          >
+            PROFIL
+          </Button>
+
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-none h-9 px-6 font-mono text-[11px] font-black tracking-[0.2em] border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-all"
+            onClick={handleLogout}
+          >
+            DECONNEXION
           </Button>
         </div>
       </header>
-      <div className="flex flex-col gap-6 px-6 py-8 lg:flex-row">
-        <nav className="flex flex-wrap gap-2 lg:w-56">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                [
-                  'rounded-full px-4 py-2 text-sm font-semibold transition',
-                  isActive
-                    ? 'bg-primary text-primaryForeground'
-                    : 'bg-muted text-foreground hover:bg-muted/80'
-                ].join(' ')
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <main className="flex-1">
-          <Outlet />
-        </main>
-      </div>
+
+      <main className="max-w-7xl mx-auto px-6 py-12 lg:px-12">
+        <Outlet />
+      </main>
+
+      <footer className="mt-auto border-t border-border/50 bg-background/50 py-8 px-6 lg:px-12">
+        <div className="max-w-7xl mx-auto flex justify-between items-center opacity-50">
+          <div className="flex items-center gap-2">
+            <div className="size-3 bg-primary rotate-45" />
+            <span className="font-display font-bold tracking-tighter text-xs uppercase">SaaS//Builder</span>
+          </div>
+          <span className="font-mono text-[9px] font-black tracking-[0.3em] uppercase">Build by Batox</span>
+        </div>
+      </footer>
     </div>
   );
 }

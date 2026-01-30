@@ -21,6 +21,7 @@ import MfaSetup from '@/pages/private/MfaSetup';
 import MfaChallenge from '@/pages/private/MfaChallenge';
 import ServiceStatus from '@/pages/private/ServiceStatus';
 import CompleteProfile from '@/pages/private/CompleteProfile';
+import WIP from '@/pages/public/WIP';
 
 /**
  * Application router definition.
@@ -42,7 +43,8 @@ const router = createBrowserRouter([
       { path: 'oauth/callback', element: <OAuthCallback /> },
       { path: 'terms', element: <Terms /> },
       { path: 'privacy', element: <Privacy /> },
-      { path: 'mfa-challenge', element: <MfaChallenge /> }
+      { path: 'mfa-challenge', element: <MfaChallenge /> },
+      { path: 'wip', element: <WIP /> }
     ]
   },
   {

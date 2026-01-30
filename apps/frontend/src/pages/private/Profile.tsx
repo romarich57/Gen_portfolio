@@ -5,25 +5,50 @@ import { useQuery } from '@tanstack/react-query';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Label from '@/components/ui/Label';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
 import ErrorBanner from '@/components/common/ErrorBanner';
 import Loading from '@/components/common/Loading';
 import CountrySelect from '@/components/common/CountrySelect';
 import { getMe, getOnboardingStatus, patchOnboarding, patchMe } from '@/api/me';
+import { getBillingStatus, createCheckoutSession, createPortalSession } from '@/api/billing';
 import { useAuth } from '@/app/providers/AuthBootstrap';
 import type { ApiError } from '@/api/http';
-import { fetchCsrfToken } from '@/api/csrf';
 import { useToast } from '@/components/common/ToastProvider';
 import { isProfileComplete } from '@/utils/profile';
+import { cn } from '@/lib/utils';
 
-/**
- * Profile page with onboarding block.
- * Preconditions: authenticated session.
- * Postconditions: allows onboarding completion and profile updates.
- */
+// Inline Icons to avoid dependency issues
+const Icons = {
+  User: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+  ),
+  Link: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+  ),
+  Shield: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+  ),
+  CreditCard: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
+  ),
+  History: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M12 7v5l4 2" /></svg>
+  ),
+  AlertCircle: () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
+  )
+};
+
+type Tab = 'INFO' | 'CONNECTIONS' | 'SECURITY' | 'PLAN' | 'HISTORY';
+
 function Profile() {
-  const { user, refreshUser, csrfToken } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<Tab>('INFO');
+
+  // Forms states
   const [profileForm, setProfileForm] = useState({
     first_name: '',
     last_name: '',
@@ -37,20 +62,19 @@ function Profile() {
     username: '',
     nationality: ''
   });
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [onboardingError, setOnboardingError] = useState<string | null>(null);
-  const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string>>({});
-  const [onboardingFieldErrors, setOnboardingFieldErrors] = useState<Record<string, string>>({});
+
+  // Loading & Error states
   const [profileLoading, setProfileLoading] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [billingErrorMsg, setBillingErrorMsg] = useState<string | null>(null);
+  const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string | undefined>>({});
+  const [onboardingFieldErrors, setOnboardingFieldErrors] = useState<Record<string, string | undefined>>({});
 
-  const {
-    data: profile,
-    isLoading,
-    isError: isProfileError,
-    error: profileFetchError,
-    refetch: refetchProfile
-  } = useQuery({
+  // Queries
+  const { data: profile, isLoading: isProfileLoading, refetch: refetchProfile } = useQuery({
     queryKey: ['me'],
     queryFn: async () => {
       const response = await getMe();
@@ -59,15 +83,16 @@ function Profile() {
     initialData: user ?? undefined
   });
 
-  const {
-    data: onboardingStatus,
-    isError: isOnboardingError,
-    error: onboardingFetchError,
-    refetch: refetchOnboarding
-  } = useQuery({
+  const { refetch: refetchOnboarding } = useQuery({
     queryKey: ['onboarding'],
     queryFn: async () => getOnboardingStatus(),
     enabled: Boolean(profile)
+  });
+
+  const { data: billingStatus } = useQuery({
+    queryKey: ['billing-status'],
+    queryFn: async () => getBillingStatus(),
+    enabled: activeTab === 'PLAN'
   });
 
   useEffect(() => {
@@ -87,6 +112,7 @@ function Profile() {
     });
   }, [profile]);
 
+  // Handlers
   const handleProfileSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setProfileError(null);
@@ -102,24 +128,10 @@ function Profile() {
       });
       await refetchProfile();
       await refreshUser();
-      showToast('Profil mis a jour.', 'success');
+      showToast('Profil mis à jour.', 'success');
     } catch (err) {
       const apiError = err as ApiError;
-      if (apiError.code === 'NETWORK_ERROR') {
-        setProfileError('Impossible de contacter le serveur.');
-      } else if (apiError.code === 'USERNAME_TAKEN' || apiError.code === 'USERNAME_UNAVAILABLE') {
-        setProfileError('Ce nom d\'utilisateur est deja pris.');
-      } else if (apiError.code === 'ONBOARDING_REQUIRED') {
-        setProfileError('Terminez d\'abord l\'onboarding obligatoire.');
-      } else if (apiError.code === 'VALIDATION_ERROR') {
-        setProfileFieldErrors(mapFieldErrors(apiError));
-        setProfileError(buildValidationMessage(apiError.fields));
-      } else if (isCsrfError(apiError.code)) {
-        await fetchCsrfToken().catch(() => undefined);
-        setProfileError('Session CSRF expiree. Rechargez la page et reessayez.');
-      } else {
-        setProfileError('Mise a jour impossible.');
-      }
+      handleApiError(apiError, setProfileError, setProfileFieldErrors);
     } finally {
       setProfileLoading(false);
     }
@@ -140,342 +152,408 @@ function Profile() {
       await refetchOnboarding();
       await refetchProfile();
       await refreshUser();
-      showToast('Onboarding termine.', 'success');
+      showToast('Onboarding terminé.', 'success');
     } catch (err) {
       const apiError = err as ApiError;
-      if (apiError.code === 'NETWORK_ERROR') {
-        setOnboardingError('Impossible de contacter le serveur.');
-      } else if (apiError.code === 'USERNAME_TAKEN' || apiError.code === 'USERNAME_UNAVAILABLE') {
-        setOnboardingError('Ce nom d\'utilisateur est deja pris.');
-      } else if (apiError.code === 'VALIDATION_ERROR') {
-        setOnboardingFieldErrors(mapFieldErrors(apiError));
-        setOnboardingError(buildValidationMessage(apiError.fields));
-      } else if (isCsrfError(apiError.code)) {
-        await fetchCsrfToken().catch(() => undefined);
-        setOnboardingError('Session CSRF expiree. Rechargez la page et reessayez.');
-      } else {
-        setOnboardingError('Onboarding impossible.');
-      }
+      handleApiError(apiError, setOnboardingError, setOnboardingFieldErrors);
     } finally {
       setOnboardingLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-4">
-        <Loading />
-      </div>
-    );
-  }
-
-  if (isProfileError || !profile) {
-    const apiError = profileFetchError as ApiError | undefined;
-    const message =
-      apiError?.code === 'NETWORK_ERROR'
-        ? 'Impossible de contacter le serveur.'
-        : 'Impossible de charger le profil.';
-    return (
-      <div className="space-y-4 p-4">
-        <ErrorBanner message={message} />
-        <Button variant="outline" onClick={() => refetchProfile()}>
-          Reessayer
-        </Button>
-      </div>
-    );
-  }
-
-  const isOnboardingRequired = !isProfileComplete(profile);
-  const profileDisabled = isOnboardingRequired;
-
-  function buildValidationMessage(fields?: string[]) {
-    if (!fields || fields.length === 0) {
-      return 'Verifiez les champs requis.';
+  const handleUpgrade = async (planCode: 'PREMIUM' | 'VIP') => {
+    setBillingLoading(true);
+    setBillingErrorMsg(null);
+    try {
+      const { checkout_url } = await createCheckoutSession({ planCode });
+      window.location.assign(checkout_url);
+    } catch (err) {
+      setBillingErrorMsg('Impossible de démarrer le paiement.');
+    } finally {
+      setBillingLoading(false);
     }
-    if (fields.includes('nationality')) {
-      return 'Nationalite invalide (ISO2, ex: FR).';
+  };
+
+  const handlePortal = async () => {
+    setBillingLoading(true);
+    setBillingErrorMsg(null);
+    try {
+      const { portal_url } = await createPortalSession();
+      window.location.assign(portal_url);
+    } catch (err) {
+      setBillingErrorMsg('Impossible d\'ouvrir le portail de gestion.');
+    } finally {
+      setBillingLoading(false);
     }
-    if (fields.includes('username')) {
-      return 'Nom d\'utilisateur invalide (3-30 caracteres, lettres/chiffres/_).';
+  };
+
+  const handleApiError = (err: ApiError, setMsg: (m: string) => void, setFields: (f: any) => void) => {
+    if (err.code === 'VALIDATION_ERROR') {
+      const mapped: any = {};
+      err.issues?.forEach(i => mapped[i.field] = i.message);
+      setFields(mapped);
+      setMsg('Veuillez vérifier les champs.');
+    } else if (err.code === 'USERNAME_UNAVAILABLE') {
+      setMsg('Ce nom d\'utilisateur est déjà pris.');
+    } else {
+      setMsg('Une erreur est survenue.');
     }
-    return 'Verifiez les champs requis.';
-  }
+  };
 
-  function isCsrfError(code: string) {
-    return code === 'CSRF_TOKEN_INVALID' || code === 'CSRF_ORIGIN_INVALID' || code === 'CSRF_ORIGIN_MISSING';
-  }
+  const isOnboardingRequired = profile && !isProfileComplete(profile);
 
-  function mapFieldErrors(error: ApiError) {
-    const result: Record<string, string> = {};
-    const issues = error.issues ?? [];
-    const fallbackFields = error.fields ?? [];
-
-    issues.forEach((issue) => {
-      result[issue.field] = translateIssue(issue.field, issue.message);
-    });
-
-    fallbackFields.forEach((field) => {
-      if (!result[field]) {
-        result[field] = translateIssue(field, 'required');
-      }
-    });
-
-    return result;
-  }
-
-  function translateIssue(field: string, message: string) {
-    const fieldLabel: Record<string, string> = {
-      first_name: 'Prenom',
-      last_name: 'Nom',
-      username: 'Nom d\'utilisateur',
-      nationality: 'Nationalite',
-      locale: 'Locale'
-    };
-
-    switch (message) {
-      case 'required':
-        return `${fieldLabel[field] ?? 'Champ'} requis.`;
-      case 'username_invalid':
-        return '3-30 caracteres, lettres/chiffres/underscore.';
-      case 'country_invalid':
-        return 'Code pays ISO2 invalide (ex: FR).';
-      case 'min':
-        return 'Valeur trop courte.';
-      case 'max':
-        return 'Valeur trop longue.';
-      default:
-        return 'Valeur invalide.';
-    }
-  }
+  if (isProfileLoading) return <Loading />;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-display font-semibold">Profil</h1>
-        <p className="text-sm text-mutedForeground">Gerez vos informations personnelles.</p>
-      </div>
+    <div className="max-w-6xl mx-auto py-8">
+      <div className="flex flex-col lg:flex-row gap-12">
+        {/* Sidebar */}
+        <aside className="lg:w-72 flex flex-col gap-2">
+          <div className="mb-6 px-4">
+            <h1 className="text-3xl font-display font-black tracking-tighter uppercase text-foreground">Paramètres</h1>
+            <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mt-1">Gérez votre expérience.</p>
+          </div>
 
-      {isOnboardingRequired && (
-        <section className="rounded-2xl border border-accent/40 bg-accent/10 p-6">
-          <h2 className="text-xl font-display font-semibold">Onboarding obligatoire</h2>
-          <p className="mt-2 text-sm text-mutedForeground">
-            Completez votre profil pour debloquer toutes les fonctionnalites.
-          </p>
-          {onboardingError && <ErrorBanner message={onboardingError} className="mt-4" />}
-          <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={handleOnboardingSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="onb-first">Prenom</Label>
-              <Input
-                id="onb-first"
-                value={onboardingForm.first_name}
-                onChange={(event) =>
-                  setOnboardingForm({ ...onboardingForm, first_name: event.target.value })
-                }
-                required
-                aria-invalid={Boolean(onboardingFieldErrors.first_name)}
-                className={onboardingFieldErrors.first_name ? 'border-destructive' : undefined}
-              />
-              {onboardingFieldErrors.first_name && (
-                <p className="text-xs text-destructive">{onboardingFieldErrors.first_name}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="onb-last">Nom</Label>
-              <Input
-                id="onb-last"
-                value={onboardingForm.last_name}
-                onChange={(event) =>
-                  setOnboardingForm({ ...onboardingForm, last_name: event.target.value })
-                }
-                required
-                aria-invalid={Boolean(onboardingFieldErrors.last_name)}
-                className={onboardingFieldErrors.last_name ? 'border-destructive' : undefined}
-              />
-              {onboardingFieldErrors.last_name && (
-                <p className="text-xs text-destructive">{onboardingFieldErrors.last_name}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="onb-username">Nom d'utilisateur</Label>
-              <Input
-                id="onb-username"
-                value={onboardingForm.username}
-                onChange={(event) =>
-                  setOnboardingForm({ ...onboardingForm, username: event.target.value })
-                }
-                required
-                aria-invalid={Boolean(onboardingFieldErrors.username)}
-                className={onboardingFieldErrors.username ? 'border-destructive' : undefined}
-              />
-              <p className="text-xs text-mutedForeground">
-                3-30 caracteres, lettres/chiffres/underscore.
-              </p>
-              {onboardingFieldErrors.username && (
-                <p className="text-xs text-destructive">{onboardingFieldErrors.username}</p>
-              )}
-            </div>
-            <CountrySelect
-              id="onb-nationality"
-              label="Nationalite (ISO2)"
-              value={onboardingForm.nationality}
-              onChange={(value) => setOnboardingForm({ ...onboardingForm, nationality: value })}
-              required
-              error={onboardingFieldErrors.nationality}
-            />
-            <div className="md:col-span-2">
-              <Button type="submit" disabled={onboardingLoading || !csrfToken}>
-                {onboardingLoading ? 'Enregistrement...' : 'Valider l\'onboarding'}
-              </Button>
-            </div>
-          </form>
-          {isOnboardingError && (
-            <p className="mt-3 text-xs text-destructive">
-              {((onboardingFetchError as ApiError | undefined)?.code === 'NETWORK_ERROR'
-                ? 'Impossible de contacter le serveur.'
-                : 'Impossible de charger le statut d\'onboarding.')}
-            </p>
-          )}
-          {!isOnboardingError && onboardingStatus?.missing_fields?.length ? (
-            <p className="mt-3 text-xs text-mutedForeground">
-              Champs manquants: {onboardingStatus.missing_fields.join(', ')}
-            </p>
-          ) : null}
-        </section>
-      )}
-
-      <section className="rounded-2xl border border-border bg-card/90 p-6">
-        <h2 className="text-xl font-display font-semibold">Informations</h2>
-        {profileDisabled && (
-          <p className="mt-2 text-sm text-mutedForeground">
-            Terminez l\'onboarding pour modifier vos informations.
-          </p>
-        )}
-        {profileError && <ErrorBanner message={profileError} className="mt-4" />}
-        <form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={handleProfileSubmit}>
-          <div className="space-y-2">
-            <Label htmlFor="first">Prenom</Label>
-            <Input
-              id="first"
-              value={profileForm.first_name}
-              onChange={(event) =>
-                setProfileForm({ ...profileForm, first_name: event.target.value })
-              }
-              disabled={profileDisabled}
-              aria-invalid={Boolean(profileFieldErrors.first_name)}
-              className={profileFieldErrors.first_name ? 'border-destructive' : undefined}
-            />
-            {profileFieldErrors.first_name && (
-              <p className="text-xs text-destructive">{profileFieldErrors.first_name}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="last">Nom</Label>
-            <Input
-              id="last"
-              value={profileForm.last_name}
-              onChange={(event) =>
-                setProfileForm({ ...profileForm, last_name: event.target.value })
-              }
-              disabled={profileDisabled}
-              aria-invalid={Boolean(profileFieldErrors.last_name)}
-              className={profileFieldErrors.last_name ? 'border-destructive' : undefined}
-            />
-            {profileFieldErrors.last_name && (
-              <p className="text-xs text-destructive">{profileFieldErrors.last_name}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="username">Nom d'utilisateur</Label>
-            <Input
-              id="username"
-              value={profileForm.username}
-              onChange={(event) =>
-                setProfileForm({ ...profileForm, username: event.target.value })
-              }
-              disabled={profileDisabled}
-              aria-invalid={Boolean(profileFieldErrors.username)}
-              className={profileFieldErrors.username ? 'border-destructive' : undefined}
-            />
-            <p className="text-xs text-mutedForeground">
-              3-30 caracteres, lettres/chiffres/underscore.
-            </p>
-            {profileFieldErrors.username && (
-              <p className="text-xs text-destructive">{profileFieldErrors.username}</p>
-            )}
-          </div>
-          <CountrySelect
-            id="nationality"
-            label="Nationalite (ISO2)"
-            value={profileForm.nationality}
-            onChange={(value) => setProfileForm({ ...profileForm, nationality: value })}
-            disabled={profileDisabled}
-            error={profileFieldErrors.nationality}
-            helperText="Optionnel"
+          <SidebarItem
+            icon={<Icons.User />}
+            label="Mon Profil"
+            active={activeTab === 'INFO'}
+            onClick={() => setActiveTab('INFO')}
           />
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="locale">Locale</Label>
-            <Input
-              id="locale"
-              value={profileForm.locale}
-              onChange={(event) => setProfileForm({ ...profileForm, locale: event.target.value })}
-              disabled={profileDisabled}
-              aria-invalid={Boolean(profileFieldErrors.locale)}
-              className={profileFieldErrors.locale ? 'border-destructive' : undefined}
-            />
-            {profileFieldErrors.locale && (
-              <p className="text-xs text-destructive">{profileFieldErrors.locale}</p>
-            )}
-          </div>
-          <div className="md:col-span-2">
-            <Button type="submit" disabled={profileLoading || !csrfToken || profileDisabled}>
-              {profileLoading ? 'Mise a jour...' : 'Sauvegarder'}
-            </Button>
-          </div>
-        </form>
-      </section>
+          <SidebarItem
+            icon={<Icons.Link />}
+            label="Connexions"
+            active={activeTab === 'CONNECTIONS'}
+            onClick={() => setActiveTab('CONNECTIONS')}
+          />
+          <SidebarItem
+            icon={<Icons.Shield />}
+            label="Sécurité"
+            active={activeTab === 'SECURITY'}
+            onClick={() => setActiveTab('SECURITY')}
+          />
+          <div className="h-px bg-border/50 my-4 mx-4" />
+          <SidebarItem
+            icon={<Icons.CreditCard />}
+            label="Plan Actuel"
+            active={activeTab === 'PLAN'}
+            onClick={() => setActiveTab('PLAN')}
+          />
+          <SidebarItem
+            icon={<Icons.History />}
+            label="Historique"
+            active={activeTab === 'HISTORY'}
+            onClick={() => setActiveTab('HISTORY')}
+          />
+        </aside>
 
-      <section className="rounded-2xl border border-border bg-card/90 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-display font-semibold">Securite</h2>
-            <p className="text-sm text-mutedForeground">
-              Renforcez la securite de votre compte (optionnel).
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-border p-4">
-            <h3 className="text-sm font-semibold">Telephone</h3>
-            <p className="mt-2 text-xs text-mutedForeground">
-              Verifiez votre numero pour renforcer la recuperation.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => navigate('/verify-phone')}
-            >
-              Ajouter un telephone
-            </Button>
-          </div>
-          <div className="rounded-xl border border-border p-4">
-            <h3 className="text-sm font-semibold">MFA TOTP</h3>
-            <p className="mt-2 text-xs text-mutedForeground">
-              Ajoutez une seconde verification via application.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => navigate('/setup-mfa')}
-            >
-              Activer la MFA
-            </Button>
-          </div>
-        </div>
-      </section>
+        {/* Content */}
+        <main className="flex-1">
+          {activeTab === 'INFO' && (
+            <div className="space-y-8 animate-fadeUp">
+              {isOnboardingRequired && (
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardHeader>
+                    <h2 className="text-xl font-display font-black uppercase tracking-tight">Onboarding requis</h2>
+                    <p className="text-sm text-muted-foreground font-medium">Complétez ces informations pour débloquer votre accès.</p>
+                  </CardHeader>
+                  <CardContent>
+                    {onboardingError && <ErrorBanner message={onboardingError} className="mb-4" />}
+                    <form onSubmit={handleOnboardingSubmit} className="grid sm:grid-cols-2 gap-4">
+                      <Field label="Prénom" error={onboardingFieldErrors.first_name}>
+                        <Input value={onboardingForm.first_name} onChange={e => setOnboardingForm({ ...onboardingForm, first_name: e.target.value })} required />
+                      </Field>
+                      <Field label="Nom" error={onboardingFieldErrors.last_name}>
+                        <Input value={onboardingForm.last_name} onChange={e => setOnboardingForm({ ...onboardingForm, last_name: e.target.value })} required />
+                      </Field>
+                      <Field label="Nom d'utilisateur" error={onboardingFieldErrors.username}>
+                        <Input value={onboardingForm.username} onChange={e => setOnboardingForm({ ...onboardingForm, username: e.target.value })} required />
+                      </Field>
+                      <div className="space-y-2">
+                        <CountrySelect
+                          id="onboarding-nationality"
+                          label="Nationalité"
+                          value={onboardingForm.nationality}
+                          onChange={v => setOnboardingForm({ ...onboardingForm, nationality: v })}
+                        />
+                      </div>
+                      <div className="sm:col-span-2 pt-4">
+                        <Button type="submit" className="w-full sm:w-auto" disabled={onboardingLoading}>
+                          {onboardingLoading ? 'Finalisation...' : 'Compléter le profil'}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="border-border/50 bg-card/50">
+                <CardHeader>
+                  <h2 className="text-xl font-display font-black uppercase tracking-tight">Informations Personnelles</h2>
+                  <p className="text-sm text-muted-foreground">Ces informations sont utilisées pour personnaliser votre expérience.</p>
+                </CardHeader>
+                <CardContent>
+                  {profileError && <ErrorBanner message={profileError} className="mb-4" />}
+                  <form onSubmit={handleProfileSubmit} className="grid sm:grid-cols-2 gap-4">
+                    <Field label="Prénom" error={profileFieldErrors.first_name}>
+                      <Input value={profileForm.first_name} onChange={e => setProfileForm({ ...profileForm, first_name: e.target.value })} disabled={isOnboardingRequired ?? false} />
+                    </Field>
+                    <Field label="Nom" error={profileFieldErrors.last_name}>
+                      <Input value={profileForm.last_name} onChange={e => setProfileForm({ ...profileForm, last_name: e.target.value })} disabled={isOnboardingRequired ?? false} />
+                    </Field>
+                    <Field label="Nom d'utilisateur" error={profileFieldErrors.username}>
+                      <Input value={profileForm.username} onChange={e => setProfileForm({ ...profileForm, username: e.target.value })} disabled={isOnboardingRequired ?? false} />
+                    </Field>
+                    <div className="space-y-2">
+                      <CountrySelect
+                        id="profile-nationality"
+                        label="Nationalité"
+                        value={profileForm.nationality}
+                        onChange={v => setProfileForm({ ...profileForm, nationality: v })}
+                        disabled={isOnboardingRequired ?? false}
+                      />
+                    </div>
+                    <div className="sm:col-span-2 pt-4">
+                      <Button type="submit" disabled={profileLoading || (isOnboardingRequired ?? false)} className="w-full sm:w-auto">
+                        {profileLoading ? 'Mise à jour...' : 'Sauvegarder les modifications'}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'CONNECTIONS' && (
+            <div className="space-y-6 animate-fadeUp">
+              <div className="px-2">
+                <h2 className="text-2xl font-display font-black uppercase tracking-tight">Mes Connexions</h2>
+                <p className="text-sm text-muted-foreground font-medium">Gérez vos comptes tiers liés à votre profil SaaS//Builder.</p>
+              </div>
+
+              <div className="grid gap-4">
+                <OAuthProviderItem
+                  name="Google"
+                  connected={profile?.connected_accounts.includes('google')}
+                  icon={<div className="size-5 bg-foreground rounded-full" />}
+                />
+                <OAuthProviderItem
+                  name="GitHub"
+                  connected={profile?.connected_accounts.includes('github')}
+                  icon={<div className="size-5 bg-foreground rounded-sm" />}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'SECURITY' && (
+            <div className="space-y-6 animate-fadeUp">
+              <div className="px-2">
+                <h2 className="text-2xl font-display font-black uppercase tracking-tight">Sécurité de l'accès</h2>
+                <p className="text-sm text-muted-foreground font-medium">Protégez votre compte avec des couches de sécurité additionnelles.</p>
+              </div>
+
+              <div className="grid gap-4">
+                <Card className="group hover:border-primary/30 transition-all border-border/50">
+                  <CardContent className="flex items-center justify-between py-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-muted rounded-none group-hover:bg-primary/10 transition-colors">
+                        <Icons.Shield />
+                      </div>
+                      <div>
+                        <h3 className="font-bold uppercase tracking-tight">Authentification à deux facteurs (MFA)</h3>
+                        <p className="text-xs text-muted-foreground font-mono mt-1 italic">Statut: {profile?.mfa_enabled ? 'Activé' : 'Désactivé'}</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/setup-mfa')}>
+                      {profile?.mfa_enabled ? 'Modifier' : 'Configurer'}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="group hover:border-primary/30 transition-all border-border/50">
+                  <CardContent className="flex items-center justify-between py-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-muted rounded-none group-hover:bg-primary/10 transition-colors">
+                        <Icons.CreditCard />
+                      </div>
+                      <div>
+                        <h3 className="font-bold uppercase tracking-tight">Numéro de téléphone</h3>
+                        <p className="text-xs text-muted-foreground font-mono mt-1 italic">Pour la récupération et les alertes critiques.</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => navigate('/verify-phone')}>
+                      Configurer
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'PLAN' && (
+            <div className="space-y-8 animate-fadeUp">
+              <div className="px-2">
+                <h2 className="text-2xl font-display font-black uppercase tracking-tight">Votre Abonnement</h2>
+                <p className="text-sm text-muted-foreground font-medium">Gérez la puissance de votre architecte IA.</p>
+                {billingErrorMsg && <ErrorBanner message={billingErrorMsg} className="mt-4" />}
+              </div>
+
+              {billingStatus ? (
+                <>
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                      <div>
+                        <Badge className="mb-2 rounded-none font-black tracking-widest uppercase text-[9px] bg-primary/20 text-primary border-primary/30">Plan Actuel</Badge>
+                        <h3 className="text-3xl font-display font-black uppercase tracking-tighter">{billingStatus.plan_code}</h3>
+                      </div>
+                      <Button variant="outline" onClick={handlePortal} disabled={billingLoading}>Gérer dans Stripe</Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4 sm:flex sm:gap-12">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-mono uppercase text-muted-foreground">Projets</p>
+                          <p className="font-bold">{billingStatus.entitlements?.projects_used} / {billingStatus.entitlements?.projects_limit || '∞'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-mono uppercase text-muted-foreground">Statut</p>
+                          <p className="font-bold text-green-500 uppercase text-xs">{billingStatus.status || 'ACTIVE'}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {upgradeOptions.map(opt => (
+                      <Card key={opt.code} className={cn("border-border/50", billingStatus.plan_code === opt.code && "border-primary/50 bg-primary/5")}>
+                        <CardHeader>
+                          <h4 className="font-display font-black uppercase tracking-tight text-lg">{opt.title}</h4>
+                          <p className="font-mono text-xs text-primary font-bold">{opt.price}</p>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{opt.description}</p>
+                        </CardContent>
+                        <CardFooter>
+                          <Button className="w-full rounded-none h-11 uppercase font-mono text-xs font-black tracking-widest disabled:opacity-50" disabled={billingStatus.plan_code === opt.code || billingLoading} onClick={() => handleUpgrade(opt.code)}>
+                            {billingStatus.plan_code === opt.code ? 'Votre Plan' : 'Choisir ce plan'}
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                </>
+              ) : <Loading />}
+            </div>
+          )}
+
+          {activeTab === 'HISTORY' && (
+            <div className="space-y-6 animate-fadeUp">
+              <div className="px-2">
+                <h2 className="text-2xl font-display font-black uppercase tracking-tight">Historique de paiements</h2>
+                <p className="text-sm text-muted-foreground font-medium">Consultez vos factures et transactions passées.</p>
+              </div>
+
+              <div className="border border-border/50 overflow-hidden">
+                <table className="w-full text-left text-sm font-mono">
+                  <thead>
+                    <tr className="bg-muted uppercase text-[10px] font-black tracking-widest">
+                      <th className="px-6 py-4">Date</th>
+                      <th className="px-6 py-4">Montant</th>
+                      <th className="px-6 py-4">Statut</th>
+                      <th className="px-6 py-4">Facture</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4">15 Janv. 2026</td>
+                      <td className="px-6 py-4 font-bold">10.00 EUR</td>
+                      <td className="px-6 py-4"><span className="text-[10px] bg-green-500/10 text-green-500 px-2 py-0.5 font-bold uppercase">Succès</span></td>
+                      <td className="px-6 py-4"><Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold text-primary">Télécharger</Button></td>
+                    </tr>
+                    <tr className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4">15 Déc. 2025</td>
+                      <td className="px-6 py-4 font-bold">10.00 EUR</td>
+                      <td className="px-6 py-4"><span className="text-[10px] bg-green-500/10 text-green-500 px-2 py-0.5 font-bold uppercase">Succès</span></td>
+                      <td className="px-6 py-4"><Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold text-primary">Télécharger</Button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-center text-xs text-muted-foreground italic font-medium">Toutes vos transactions sont sécurisées par Stripe.</p>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
+
+// Sub-components
+function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 text-sm font-black uppercase tracking-[0.1em] font-mono transition-all border-r-2 group",
+        active
+          ? "border-primary bg-primary/5 text-primary"
+          : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      <span className={cn("transition-colors", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
+        {icon}
+      </span>
+      {label}
+    </button>
+  );
+}
+
+function Field({ label, error, children }: { label: string, error?: string | null | undefined, children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <Label className="uppercase text-[10px] font-black tracking-widest text-muted-foreground">{label}</Label>
+      {children}
+      {error && <p className="text-[10px] font-bold text-destructive flex items-center gap-1 uppercase tracking-tighter"><Icons.AlertCircle /> {error}</p>}
+    </div>
+  );
+}
+
+function OAuthProviderItem({ name, connected, icon }: { name: string, connected?: boolean, icon: React.ReactNode }) {
+  return (
+    <Card className="border-border/50 group hover:border-primary/20 transition-all">
+      <CardContent className="flex items-center justify-between py-4">
+        <div className="flex items-center gap-4">
+          {icon}
+          <div>
+            <h4 className="font-bold uppercase tracking-tight">{name}</h4>
+            <p className="text-xs text-muted-foreground font-mono italic">
+              {connected ? 'Connecté' : 'Non connecté'}
+            </p>
+          </div>
+        </div>
+        {connected ? (
+          <Button variant="outline" size="sm" className="border-destructive/30 text-destructive hover:bg-destructive hover:text-white rounded-none uppercase font-mono text-[9px] font-black tracking-widest">Déconnecter</Button>
+        ) : (
+          <Button size="sm" className="rounded-none uppercase font-mono text-[9px] font-black tracking-widest">Connecter</Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const upgradeOptions = [
+  {
+    code: 'PREMIUM' as const,
+    title: 'Elite',
+    price: '10 EUR / mois',
+    description: 'Bâtissez jusqu\'à 5 projets avec prompts IA experts.'
+  },
+  {
+    code: 'VIP' as const,
+    title: 'VIP',
+    price: '30 EUR / mois',
+    description: 'Projets illimités + système de crédits pour calculs intensifs.'
+  }
+];
 
 export default Profile;

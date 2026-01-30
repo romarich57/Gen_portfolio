@@ -12,6 +12,7 @@ export type UserProfile = {
   mfa_required: boolean;
   onboarding_completed_at: string | null;
   deleted_at: string | null;
+  connected_accounts: string[];
 };
 
 export type OnboardingStatus = {

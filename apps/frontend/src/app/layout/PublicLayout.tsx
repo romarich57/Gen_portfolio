@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import ThemeToggle from '@/components/common/ThemeToggle';
@@ -17,11 +17,23 @@ function PublicLayout() {
   const isLanding = location.pathname === '/' || location.pathname === '/pricing';
 
   const navLinks = [
-    { label: '/FEATURES', to: '/#features' },
-    { label: '/PRICING', to: '/pricing' },
-    { label: '/DOCS', to: '#' },
-    { label: '/API', to: '#' },
+    { label: 'APPLICATION', to: '/' },
+    { label: 'PRIX', to: '/#pricing' },
+    { label: 'DOCUMENTATION', to: '/wip' },
+    { label: 'QUI SOMMES-NOUS', to: '/wip' },
   ];
+
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [location]);
 
   return (
     <div className="relative min-h-screen bg-background font-body text-foreground selection:bg-primary/30">
@@ -34,7 +46,7 @@ function PublicLayout() {
             <div className="size-4 bg-primary rotate-45" />
           </div>
           <span className="text-xl font-display font-bold tracking-tighter uppercase">
-            Project<span className="text-primary font-light tracking-widest">//</span>Builder<span className="text-primary/50 font-light">//</span>AI
+            SaaS<span className="text-primary font-light tracking-widest">//</span>Builder
           </span>
         </Link>
 
@@ -59,29 +71,20 @@ function PublicLayout() {
 
           {user ? (
             <Button
-              variant="outline"
               size="sm"
-              className="hidden sm:flex font-mono text-[11px] font-black tracking-[0.2em] border-primary text-foreground hover:bg-primary/10"
+              className="hidden sm:flex font-mono text-[11px] font-black tracking-[0.2em] rounded-none h-10 px-8 bg-primary text-background hover:bg-primary/90 accent-glow"
               onClick={() => navigate('/dashboard')}
             >
-              DASHBOARD_GO
+              ACCES_SYSTEME
             </Button>
           ) : (
             <div className="hidden sm:flex items-center gap-4">
               <Button
-                variant="ghost"
-                size="sm"
-                className="font-mono text-[11px] font-black tracking-[0.2em] text-foreground hover:text-primary"
-                onClick={() => navigate('/login')}
-              >
-                /LOGIN
-              </Button>
-              <Button
                 size="sm"
                 className="font-mono text-[11px] font-black tracking-[0.2em] rounded-none h-10 px-8 bg-primary text-background hover:bg-primary/90 accent-glow"
-                onClick={() => navigate('/register')}
+                onClick={() => navigate('/login')}
               >
-                DEPLOY_NOW
+                SE_CONNECTER
               </Button>
             </div>
           )}
@@ -105,7 +108,7 @@ function PublicLayout() {
             <div className="flex items-center justify-between mb-16">
               <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2">
                 <div className="size-4 bg-primary rotate-45" />
-                <span className="text-xl font-display font-bold tracking-tighter uppercase">PROJECT_BUILDER</span>
+                <span className="text-xl font-display font-bold tracking-tighter uppercase">SaaS_Builder</span>
               </Link>
               <button onClick={() => setIsMobileMenuOpen(false)} className="font-mono text-xs text-primary font-black uppercase">/CLOSE</button>
             </div>
@@ -163,20 +166,8 @@ function PublicLayout() {
             </span>
           </div>
 
-          <nav className="flex flex-wrap gap-x-10 gap-y-4">
-            {['SECURITY', 'LEGAL', 'TERMS', 'STATUS'].map((link) => (
-              <a
-                key={link}
-                href="#"
-                className="font-mono text-[11px] font-black tracking-[0.2em] text-foreground hover:text-primary transition-colors"
-              >
-                {link}
-              </a>
-            ))}
-          </nav>
-
-          <span className="font-mono text-[10px] font-bold tracking-widest text-primary/80">
-            © 2026 SYSTEM_ARCHITECT. REL: 2.6.0-PROD
+          <span className="font-mono text-[10px] font-black tracking-[0.3em] text-primary/80 uppercase">
+            Build by Batox
           </span>
         </div>
       </footer>

@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Label from '@/components/ui/Label';
 import ErrorBanner from '@/components/common/ErrorBanner';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { login, resendEmailVerification, startOAuth } from '@/api/auth';
 import { useAuth } from '@/app/providers/AuthBootstrap';
 import type { ApiError } from '@/api/http';
@@ -109,10 +109,6 @@ function Login() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <div className="space-y-4 text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 border border-primary/30 bg-primary/5 font-mono text-[9px] tracking-[0.3em] uppercase text-primary font-black mx-auto">
-          <span className="size-1 bg-primary animate-pulse" />
-          SYSTEM_ACCESS_PROTOCOL
-        </div>
         <h1 className="text-4xl font-display font-black tracking-tighter uppercase text-foreground">Accès Système</h1>
         <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">Connectez-vous à votre espace projet.</p>
       </div>
@@ -121,15 +117,7 @@ function Login() {
       {resendStatus && <p className="text-xs text-mutedForeground">{resendStatus}</p>}
 
       <Card className="tech-panel p-2 border-foreground/10 shadow-2xl shadow-primary/5">
-        <CardHeader>
-          <div className="flex items-center justify-between border-b border-primary/20 pb-4 mb-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
-              IDENTIFICATION_NODE
-            </p>
-            <span className="font-mono text-[8px] opacity-40 font-bold uppercase tracking-widest text-foreground">Encrypted_Link</span>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="identifier">Email ou pseudo</Label>

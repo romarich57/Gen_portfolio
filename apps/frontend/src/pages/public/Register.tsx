@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Label from '@/components/ui/Label';
 import ErrorBanner from '@/components/common/ErrorBanner';
-import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import CountrySelect from '@/components/common/CountrySelect';
 import { register, resendEmailVerification, startOAuth } from '@/api/auth';
 import { useAuth } from '@/app/providers/AuthBootstrap';
@@ -198,62 +198,9 @@ function Register() {
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-      <div className="space-y-6 pt-6">
-        <h1 className="text-4xl font-display font-black tracking-tighter uppercase leading-tight text-foreground">Initialiser un Compte</h1>
-        <p className="text-base text-muted-foreground font-mono uppercase tracking-widest leading-relaxed">
-          Rejoignez l'architecte IA et commencez à transformer vos idées en plans actionnables.
-        </p>
-        <div className="tech-panel p-8 border-primary/20 bg-card/50 backdrop-blur-sm relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-3 font-mono text-[8px] opacity-10 text-primary uppercase select-none">
-            System_Init.sh<br />v2.6.0
-          </div>
-          <h2 className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-8 flex items-center gap-2">
-            <span className="size-1.5 bg-primary animate-pulse" />
-            PIPELINE_D'INTÉGRATION
-          </h2>
-          <ol className="space-y-6">
-            <li className="flex items-start gap-4 group/item">
-              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-sm bg-primary/20 border border-primary/40 text-[10px] font-black text-primary font-mono group-hover/item:bg-primary group-hover/item:text-background transition-all">
-                01
-              </span>
-              <div>
-                <p className="font-mono text-xs font-black uppercase tracking-wider text-foreground">Brief Initial</p>
-                <p className="text-[11px] text-muted-foreground font-bold mt-1">Configuration de votre identité projet.</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-4 group/item">
-              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-sm bg-foreground/5 border border-foreground/10 text-[10px] font-black text-foreground/40 font-mono group-hover/item:border-primary/40 group-hover/item:text-primary transition-all">
-                02
-              </span>
-              <div>
-                <p className="font-mono text-xs font-black uppercase tracking-wider text-foreground opacity-60 group-hover/item:opacity-100 transition-opacity">Validation Système</p>
-                <p className="text-[11px] text-muted-foreground font-bold mt-1 opacity-60 group-hover/item:opacity-100 transition-opacity">Vérification de l'accès par email.</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-4 group/item">
-              <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-sm bg-foreground/5 border border-foreground/10 text-[10px] font-black text-foreground/40 font-mono group-hover/item:border-primary/40 group-hover/item:text-primary transition-all">
-                03
-              </span>
-              <div>
-                <p className="font-mono text-xs font-black uppercase tracking-wider text-foreground opacity-60 group-hover/item:opacity-100 transition-opacity">Espace Projet</p>
-                <p className="text-[11px] text-muted-foreground font-bold mt-1 opacity-60 group-hover/item:opacity-100 transition-opacity">Accès au Chatbot Architecte.</p>
-              </div>
-            </li>
-          </ol>
-        </div>
-      </div>
-
+    <div className="mx-auto max-w-md space-y-6">
       <Card className="tech-panel animate-fadeUp border-foreground/10 shadow-2xl shadow-primary/5 p-2">
-        <CardHeader>
-          <div className="flex items-center justify-between border-b border-primary/20 pb-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">
-              CONFIGURATION_PROFIL
-            </p>
-            <span className="font-mono text-[8px] opacity-40 font-bold uppercase tracking-widest text-foreground">Secure_Node_Active</span>
-          </div>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {error && <ErrorBanner message={error} className="mb-4" />}
 
           <form className="space-y-4" onSubmit={handleSubmit}>

@@ -91,35 +91,21 @@ function LandingPricing() {
               onClick={() => navigate(user ? '/dashboard' : '/register')}
             >
               <span className="relative z-10 flex items-center gap-3 font-mono text-sm font-black tracking-[0.2em] text-background">
-                {user ? 'ACCESS_SYSTEM' : 'BUILD_PRODUCTION'}
+                {user ? 'ACCESS_SYSTEM' : 'TESTER L\'APPLICATION'}
                 <svg className="size-5 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </span>
             </Button>
 
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-none border-2 border-foreground/20 px-10 h-14 font-mono text-sm font-black tracking-[0.2em] text-foreground hover:bg-foreground/5 hover:border-foreground/40 transition-all"
-            >
-              /CORE_SPECS
-            </Button>
+
           </div>
         </div>
 
         {/* 3D Module Panel */}
         <div className="relative perspective-1000 hidden lg:block animate-float">
           <div className="tech-panel relative rotate-y-[-10deg] p-10 xl:p-16 transition-all duration-700 hover:rotate-y-[-2deg] border-foreground/10 group hover:shadow-[0_0_100px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_0_100px_rgba(0,0,0,1)]">
-            <div className="mb-10 xl:mb-14 flex items-center justify-between border-b-2 border-primary/30 pb-6 xl:pb-8">
-              <div className="flex items-center gap-4">
-                <div className="size-5 xl:size-6 bg-primary/20 p-1 border-2 border-primary group-hover:scale-125 transition-transform">
-                  <div className="size-full bg-primary shadow-[0_0_15px_rgba(0,207,141,0.8)]" />
-                </div>
-                <span className="font-mono text-xs xl:text-sm font-black tracking-[0.5em] text-foreground">MODULES_CORE</span>
-              </div>
-              <span className="font-mono text-[9px] xl:text-[11px] text-primary font-bold opacity-80 tracking-widest">v4.6.12-stable</span>
-            </div>
+
 
             <div className="space-y-10 xl:space-y-14">
               {modules.map((m) => (
@@ -138,9 +124,7 @@ function LandingPricing() {
             </div>
 
             {/* Technical grid overlays */}
-            <div className="absolute top-0 right-0 p-4 font-mono text-[8px] opacity-20 hidden xl:block leading-none text-primary pointer-events-none">
-              01010101<br />RESILIENT<br />SECURE<br />1110001
-            </div>
+
           </div>
 
           {/* Decorative bracket */}
@@ -149,7 +133,7 @@ function LandingPricing() {
       </section>
 
       {/* Pricing Section */}
-      <section className="relative space-y-24 py-24">
+      <section id="pricing" className="relative space-y-24 py-24">
         {/* Background Decoration */}
         <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[800px] bg-primary/5 rounded-full blur-[120px]" />
@@ -181,10 +165,7 @@ function LandingPricing() {
                 </div>
               )}
 
-              {/* Technical readout decoration */}
-              <div className="absolute top-6 left-8 font-mono text-[10px] opacity-60 text-primary font-bold leading-none select-none">
-                {plan.level}<br />SYSTEM_READY<br />NODE_0{idx + 1}
-              </div>
+
 
               <div className="space-y-8 pt-4">
                 <div className="flex items-center gap-4">
@@ -241,11 +222,8 @@ function LandingPricing() {
                 </Button>
               </div>
 
-              {/* Interactive bottom tech stamp */}
               <div className="flex justify-between items-center opacity-20 group-hover:opacity-40 transition-opacity">
-                <div className="h-[2px] w-8 bg-border" />
-                <span className="font-mono text-[8px] tracking-widest">S_ID: {Math.random().toString(36).substring(7).toUpperCase()}</span>
-                <div className="h-[2px] w-8 bg-border" />
+                <div className="h-[2px] w-full bg-border" />
               </div>
             </div>
           ))}

@@ -10,13 +10,15 @@ const mockGetMe = vi.fn();
 const mockGetOnboarding = vi.fn();
 const mockPatchOnboarding = vi.fn();
 const mockPatchMe = vi.fn();
+const mockGetSessions = vi.fn();
 const mockRefreshUser = vi.fn();
 
 vi.mock('@/api/me', () => ({
   getMe: (...args: any[]) => mockGetMe(...args),
   getOnboardingStatus: (...args: any[]) => mockGetOnboarding(...args),
   patchOnboarding: (...args: any[]) => mockPatchOnboarding(...args),
-  patchMe: (...args: any[]) => mockPatchMe(...args)
+  patchMe: (...args: any[]) => mockPatchMe(...args),
+  getSessions: (...args: any[]) => mockGetSessions(...args)
 }));
 
 vi.mock('@/app/providers/AuthBootstrap', () => ({
@@ -33,8 +35,17 @@ vi.mock('@/app/providers/AuthBootstrap', () => ({
       avatar_url: null,
       mfa_enabled: false,
       mfa_required: false,
+      email_verified_at: null,
+      phone_verified_at: null,
+      recovery_email: null,
+      recovery_email_verified_at: null,
+      recovery_email_pending: null,
+      security_alert_email_enabled: false,
+      security_alert_sms_enabled: false,
+      backup_codes_remaining: 0,
       onboarding_completed_at: null,
-      deleted_at: null
+      deleted_at: null,
+      connected_accounts: []
     },
     refreshUser: mockRefreshUser,
     csrfToken: 'csrf-token'
@@ -69,8 +80,17 @@ describe('Profile page', () => {
         avatar_url: null,
         mfa_enabled: false,
         mfa_required: false,
+        email_verified_at: null,
+        phone_verified_at: null,
+        recovery_email: null,
+        recovery_email_verified_at: null,
+        recovery_email_pending: null,
+        security_alert_email_enabled: false,
+        security_alert_sms_enabled: false,
+        backup_codes_remaining: 0,
         onboarding_completed_at: null,
-        deleted_at: null
+        deleted_at: null,
+        connected_accounts: []
       }
     });
     mockGetOnboarding.mockResolvedValue({
@@ -78,6 +98,7 @@ describe('Profile page', () => {
       missing_fields: ['first_name', 'last_name', 'username', 'nationality'],
       onboarding_completed_at: null
     });
+    mockGetSessions.mockResolvedValue({ sessions: [] });
   });
 
   it('shows inline field errors for onboarding validation', async () => {
@@ -87,21 +108,18 @@ describe('Profile page', () => {
       fields: ['nationality'],
       issues: [{ field: 'nationality', message: 'country_invalid' }]
     });
-
     renderProfile();
+    const onboardingHeading = await screen.findByText(/Onboarding requis/i);
+    expect(onboardingHeading).toBeInTheDocument();
+    const onboardingForm = await screen.findByRole('form', { name: /Onboarding form/i });
+    const scope = within(onboardingForm);
 
-    const onboardingSection = screen.getByRole('heading', { name: /Onboarding obligatoire/i }).closest('section');
-    if (!onboardingSection) {
-      throw new Error('Onboarding section not found');
-    }
-    const scope = within(onboardingSection);
-
-    fireEvent.change(scope.getByLabelText(/Prenom/i), { target: { value: 'Romaric' } });
+    fireEvent.change(scope.getByLabelText(/Prénom/i), { target: { value: 'Romaric' } });
     fireEvent.change(scope.getByLabelText(/^Nom$/i), { target: { value: 'Heitz' } });
     fireEvent.change(scope.getByLabelText(/Nom d'utilisateur/i), { target: { value: 'romaric' } });
-    fireEvent.change(scope.getByRole('combobox', { name: /Nationalite/i }), { target: { value: 'FR' } });
+    fireEvent.change(scope.getByRole('combobox', { name: /Nationalité/i }), { target: { value: 'FR' } });
 
-    fireEvent.click(scope.getByRole('button', { name: /Valider l'onboarding/i }));
+    fireEvent.click(scope.getByRole('button', { name: /Compléter le profil/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Code pays ISO2 invalide/i)).toBeInTheDocument();

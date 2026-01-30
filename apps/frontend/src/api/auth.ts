@@ -173,3 +173,44 @@ export async function verifyMfa(params: { code: string }) {
 export function startOAuth(provider: 'google' | 'github') {
   window.location.assign(`${API_BASE_URL}/auth/oauth/${provider}/start`);
 }
+
+/**
+ * Unlink OAuth provider from account.
+ * Preconditions: has password or other OAuth provider.
+ * Postconditions: provider unlinked.
+ */
+export async function unlinkOAuth(provider: 'google' | 'github') {
+  return apiRequest<{ ok: boolean }>(`/auth/oauth/${provider}`, {
+    method: 'DELETE'
+  });
+}
+
+/**
+ * Set password for OAuth-only users.
+ * Preconditions: user has no password yet.
+ * Postconditions: password set.
+ */
+export async function setPassword(params: { password: string; password_confirmation: string }) {
+  return apiRequest<{ ok: boolean }>(`/auth/set-password`, {
+    method: 'POST',
+    body: JSON.stringify(params)
+  });
+}
+
+/**
+ * Verify email change token.
+ */
+export async function verifyEmailChange(token: string) {
+  return apiRequest<{ ok: boolean }>(`/auth/email/change/verify?token=${token}`, {
+    method: 'GET'
+  });
+}
+
+/**
+ * Verify recovery email token.
+ */
+export async function verifyRecoveryEmail(token: string) {
+  return apiRequest<{ ok: boolean }>(`/auth/recovery-email/verify?token=${token}`, {
+    method: 'GET'
+  });
+}

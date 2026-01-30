@@ -67,6 +67,10 @@ Retourne un token CSRF + set cookie `csrf_token`.
 Valide token email. Met user `active` (email vérifié). Aucun onboarding phone imposé.
 Audit: `EMAIL_VERIFIED`.
 
+### GET /auth/recovery-email/verify?token=...
+Valide l'email de recuperation.
+Audit: `RECOVERY_EMAIL_VERIFIED`.
+
 ### POST /auth/password/reset/request
 Input: `{ "email": "..." }`.
 Toujours réponse neutre.

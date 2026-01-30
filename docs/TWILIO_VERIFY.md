@@ -5,6 +5,8 @@
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_VERIFY_SERVICE_SID`
 - `TWILIO_VERIFY_MODE` = `live` (prod) | `mock` (dev uniquement)
+- (optionnel) SMS alertes securite:
+  - `TWILIO_MESSAGING_SERVICE_SID` **ou** `TWILIO_SMS_FROM`
 
 > En mode `mock`, les SMS ne sont pas envoyés. Code de test: `000000`.
 

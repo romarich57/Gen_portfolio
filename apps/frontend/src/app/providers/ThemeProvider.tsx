@@ -15,7 +15,7 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
  * Postconditions: html class toggled based on theme.
  */
 function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<ThemeMode>('light');
+  const [theme, setTheme] = useState<ThemeMode>('dark');
 
   useEffect(() => {
     const stored = window.localStorage.getItem('theme');
@@ -23,8 +23,8 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
       setTheme(stored);
       return;
     }
-    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-    setTheme(prefersDark ? 'dark' : 'light');
+    const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+    setTheme(prefersLight ? 'light' : 'dark');
   }, []);
 
   useEffect(() => {

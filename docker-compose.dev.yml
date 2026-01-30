@@ -93,6 +93,7 @@ services:
       TWILIO_VERIFY_MODE: ${TWILIO_VERIFY_MODE:-mock}
       # Secrets (override in .env or docker-compose.override.yml)
       ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-dev_access_secret_change_me}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-dev_refresh_secret_change_me}
       MFA_CHALLENGE_SECRET: ${MFA_CHALLENGE_SECRET:-dev_mfa_secret_change_me}
       TOKEN_HASH_SECRET: ${TOKEN_HASH_SECRET:-dev_token_hash_change_me}
       BACKUP_CODE_PEPPER: ${BACKUP_CODE_PEPPER:-dev_backup_pepper_change_me}

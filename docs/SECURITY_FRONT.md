@@ -9,10 +9,17 @@
 - Captcha adaptatif supporte (affiche si `CAPTCHA_REQUIRED`).
 - Flag frontend: `VITE_CAPTCHA_ENABLED=false` (placeholder si non configure).
 - Login accepte email OU pseudo dans le meme champ.
+- Actions sensibles depuis Profil > Securite:
+  - Regeneration des backup codes (MFA recent requis).
+  - Gestion des sessions (revoquer une session ou tout).
+  - Alertes de securite (email/SMS).
+  - Email de recuperation (verification obligatoire).
+  - Suppression compte (GDPR delete + MFA recent).
 
 ## Gestion des erreurs
 - Messages neutres (anti-enumeration).
 - Ne pas exposer d'etat interne ou d'IDs sensibles.
+- Mapper les erreurs MFA_STEP_UP_REQUIRED / PHONE_NOT_VERIFIED / PASSWORD_REQUIRED vers des messages clairs.
 
 ## XSS / UI
 - Pas de `dangerouslySetInnerHTML`.

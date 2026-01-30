@@ -33,13 +33,23 @@
 - GET /auth/oauth/:provider/callback
   - Redirects to `/oauth/callback?next=complete-profile|mfa-challenge|setup-mfa|dashboard`
   - On error: `/oauth/callback?status=error`
+- GET /auth/recovery-email/verify?token=
 
 ## /me
 - GET /me
-  - Response inclut `mfa_enabled` + `mfa_required`
+  - Response inclut `mfa_enabled`, `mfa_required`, `backup_codes_remaining`
+  - Statuts: `email_verified_at`, `phone_verified_at`, `recovery_email_*`
 - GET /me/onboarding
 - PATCH /me/onboarding
 - PATCH /me
+- POST /me/sessions/revoke
+- POST /me/sessions/revoke-all
+- GET /me/sessions
+- POST /me/mfa/backup-codes/regenerate
+- POST /me/security/alerts
+- POST /me/recovery-email
+- DELETE /me/recovery-email
+- POST /me/gdpr/delete/request (suppression compte)
 
 ## Billing
 - GET /billing/status
@@ -58,3 +68,4 @@
 ## Pages publiques
 - /terms
 - /privacy
+- /verify-recovery-email

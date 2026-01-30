@@ -8,6 +8,7 @@ import LandingPricing from '@/pages/public/LandingPricing';
 import Login from '@/pages/public/Login';
 import Register from '@/pages/public/Register';
 import VerifyEmail from '@/pages/public/VerifyEmail';
+import VerifyRecoveryEmail from '@/pages/public/VerifyRecoveryEmail';
 import ForgotPassword from '@/pages/public/ForgotPassword';
 import ResetPassword from '@/pages/public/ResetPassword';
 import OAuthCallback from '@/pages/public/OAuthCallback';
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
       { path: 'verify-email', element: <VerifyEmail /> },
+      { path: 'verify-recovery-email', element: <VerifyRecoveryEmail /> },
       { path: 'forgot-password', element: <ForgotPassword /> },
       { path: 'reset-password', element: <ResetPassword /> },
       { path: 'oauth/callback', element: <OAuthCallback /> },

@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import ThemeToggle from '@/components/common/ThemeToggle';
@@ -53,14 +52,26 @@ function PrivateLayout() {
           <ThemeToggle />
           <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="font-mono text-[11px] font-black tracking-[0.2em] uppercase hover:text-primary"
+          {/* Avatar / Profile Button */}
+          <button
             onClick={() => navigate('/profile')}
+            className="group flex items-center gap-2 hover:opacity-80 transition-opacity"
+            aria-label="Mon profil"
           >
-            PROFIL
-          </Button>
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt="Avatar"
+                className="size-9 rounded-none border border-border/50 object-cover"
+              />
+            ) : (
+              <div className="size-9 flex items-center justify-center bg-primary/10 border border-primary/30 font-mono text-xs font-black text-primary uppercase">
+                {user?.first_name && user?.last_name
+                  ? `${user.first_name[0]}${user.last_name[0]}`
+                  : user?.email?.[0]?.toUpperCase() ?? '?'}
+              </div>
+            )}
+          </button>
 
           <Button
             size="sm"

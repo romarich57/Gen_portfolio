@@ -1,6 +1,7 @@
 export type UserProfile = {
   id: string;
   email: string;
+  has_password?: boolean;
   first_name: string | null;
   last_name: string | null;
   username: string | null;
@@ -10,9 +11,27 @@ export type UserProfile = {
   avatar_url: string | null;
   mfa_enabled: boolean;
   mfa_required: boolean;
+  email_verified_at?: string | null;
+  phone_verified_at?: string | null;
+  recovery_email?: string | null;
+  recovery_email_verified_at?: string | null;
+  recovery_email_pending?: string | null;
+  security_alert_email_enabled?: boolean;
+  security_alert_sms_enabled?: boolean;
+  backup_codes_remaining?: number;
   onboarding_completed_at: string | null;
   deleted_at: string | null;
   connected_accounts: string[];
+};
+
+export type SessionInfo = {
+  id: string;
+  created_at: string;
+  last_used_at: string;
+  expires_at: string;
+  ip: string | null;
+  user_agent: string | null;
+  current: boolean;
 };
 
 export type OnboardingStatus = {

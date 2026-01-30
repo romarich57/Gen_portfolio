@@ -34,6 +34,8 @@
   - Redirects to `/oauth/callback?next=complete-profile|mfa-challenge|setup-mfa|dashboard`
   - On error: `/oauth/callback?status=error`
 - GET /auth/recovery-email/verify?token=
+- GET /auth/security/revoke-sessions?token=
+- GET /auth/security/acknowledge-alert?token=
 
 ## /me
 - GET /me
@@ -45,6 +47,7 @@
 - POST /me/sessions/revoke
 - POST /me/sessions/revoke-all
 - GET /me/sessions
+- GET /me/sessions/history
 - POST /me/mfa/backup-codes/regenerate
 - POST /me/security/alerts
 - POST /me/recovery-email
@@ -69,3 +72,8 @@
 - /terms
 - /privacy
 - /verify-recovery-email
+- /security/revoke-sessions
+- /security/acknowledge-alert
+
+## Pages privées
+- /sessions

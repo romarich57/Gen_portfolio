@@ -1161,6 +1161,11 @@ function Profile() {
                       <p className="text-xs text-muted-foreground font-mono mt-1 italic">Gérez vos appareils connectés.</p>
                     </div>
                   </div>
+                  <div className="flex justify-end">
+                    <Button variant="outline" size="sm" onClick={() => navigate('/sessions')}>
+                      Voir l'historique complet
+                    </Button>
+                  </div>
                   <div className="space-y-3">
                     {sessionsLoading && <p className="text-sm text-muted-foreground">Chargement...</p>}
                     {!sessionsLoading && sessions.length === 0 && (
@@ -1171,7 +1176,7 @@ function Profile() {
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{session.user_agent || 'Navigateur inconnu'}</p>
                           <p className="text-xs text-muted-foreground">
-                            IP: {session.ip || '—'} · Dernière activité: {formatDate(session.last_used_at)}
+                            IP: {session.ip || '—'} · {session.location?.label || 'Localisation inconnue'} · Dernière activité: {formatDate(session.last_used_at)}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">

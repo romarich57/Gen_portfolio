@@ -12,9 +12,12 @@
 - Actions sensibles depuis Profil > Securite:
   - Regeneration des backup codes (MFA recent requis).
   - Gestion des sessions (revoquer une session ou tout).
+  - Ecran dedie /sessions (historique et details).
   - Alertes de securite (email/SMS).
   - Email de recuperation (verification obligatoire).
   - Suppression compte (GDPR delete + MFA recent).
+  - Lien public /security/revoke-sessions pour revoquer toutes les sessions depuis un email d'alerte.
+  - Lien public /security/acknowledge-alert pour confirmer "C'etait moi".
 
 ## Gestion des erreurs
 - Messages neutres (anti-enumeration).

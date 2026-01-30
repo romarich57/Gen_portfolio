@@ -31,7 +31,22 @@ export type SessionInfo = {
   expires_at: string;
   ip: string | null;
   user_agent: string | null;
+  location?: {
+    label: string;
+    city: string | null;
+    region: string | null;
+    country: string | null;
+    timezone: string | null;
+  } | null;
   current: boolean;
+};
+
+export type SessionHistoryEntry = SessionInfo & {
+  revoked_at?: string | null;
+  rotated_at?: string | null;
+  replaced_by_session_id?: string | null;
+  device_fingerprint?: string | null;
+  status?: 'active' | 'revoked' | 'expired';
 };
 
 export type OnboardingStatus = {

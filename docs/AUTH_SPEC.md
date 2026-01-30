@@ -71,6 +71,14 @@ Audit: `EMAIL_VERIFIED`.
 Valide l'email de recuperation.
 Audit: `RECOVERY_EMAIL_VERIFIED`.
 
+### GET /auth/security/revoke-sessions?token=...
+Révoque toutes les sessions via un lien d’alerte sécurité (token usage unique + TTL court).
+Audit: `SESSIONS_REVOKED_FROM_ALERT`.
+
+### GET /auth/security/acknowledge-alert?token=...
+Confirme qu'une connexion est légitime (lien "C'etait moi").
+Audit: `SECURITY_ALERT_ACKNOWLEDGED`.
+
 ### POST /auth/password/reset/request
 Input: `{ "email": "..." }`.
 Toujours réponse neutre.

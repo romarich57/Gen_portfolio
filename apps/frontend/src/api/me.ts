@@ -1,5 +1,5 @@
 import { apiRequest } from './http';
-import type { OnboardingStatus, UserProfile, SessionInfo } from './types';
+import type { OnboardingStatus, UserProfile, SessionInfo, SessionHistoryEntry } from './types';
 
 /**
  * Fetch current user profile.
@@ -110,6 +110,15 @@ export async function changeEmail(params: { newEmail: string; password?: string 
  */
 export async function getSessions() {
   return apiRequest<{ sessions: SessionInfo[] }>(`/me/sessions`, {
+    method: 'GET'
+  });
+}
+
+/**
+ * Fetch full session history (active + revoked/expired).
+ */
+export async function getSessionsHistory() {
+  return apiRequest<{ sessions: SessionHistoryEntry[] }>(`/me/sessions/history`, {
     method: 'GET'
   });
 }

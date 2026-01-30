@@ -61,7 +61,18 @@ Audit: CONSENTS_UPDATED
 ### GET /me/sessions
 Auth: yes
 Returns:
-- sessions[]: id, created_at, last_used_at, expires_at, ip, user_agent, current
+- sessions[]: id, created_at, last_used_at, expires_at, ip, user_agent, location, current
+location:
+- label (string)
+- city, region, country, timezone (nullable)
+
+### GET /me/sessions/history
+Auth: yes
+Returns:
+- sessions[]: id, created_at, last_used_at, expires_at, revoked_at, ip, user_agent, device_fingerprint, location, status, current
+location:
+- label (string)
+- city, region, country, timezone (nullable)
 
 ### POST /me/sessions/revoke
 Auth: yes
@@ -103,6 +114,7 @@ Input:
 - password (optional, required if password exists)
 Rules:
 - MFA recent if enabled
+- recovery_email unique (reject si deja utilise)
 Returns:
 - ok, email_sent
 Audit: RECOVERY_EMAIL_REQUESTED

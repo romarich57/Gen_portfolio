@@ -214,3 +214,23 @@ export async function verifyRecoveryEmail(token: string) {
     method: 'GET'
   });
 }
+
+/**
+ * Revoke all sessions via security alert token.
+ */
+export async function revokeSessionsFromAlert(token: string) {
+  return apiRequest<{ ok: boolean }>(`/auth/security/revoke-sessions?token=${encodeURIComponent(token)}`, {
+    method: 'GET',
+    skipAuthRedirect: true
+  });
+}
+
+/**
+ * Acknowledge security alert (\"C'etait moi\").
+ */
+export async function acknowledgeSecurityAlert(token: string) {
+  return apiRequest<{ ok: boolean }>(`/auth/security/acknowledge-alert?token=${encodeURIComponent(token)}`, {
+    method: 'GET',
+    skipAuthRedirect: true
+  });
+}

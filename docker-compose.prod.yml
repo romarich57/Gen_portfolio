@@ -51,6 +51,7 @@ services:
     environment:
       # Trust the self-signed Redis certificate
       NODE_EXTRA_CA_CERTS: /etc/ssl/private/redis-ca.crt
+      NODE_OPTIONS: --use-openssl-ca
     volumes:
       - ./ops/redis/certs/stunnel.pem:/etc/ssl/private/redis-ca.crt:ro
     depends_on:

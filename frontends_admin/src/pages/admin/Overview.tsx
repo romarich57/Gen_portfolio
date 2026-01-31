@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { Users, CreditCard, Download, Activity, TrendingUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
@@ -14,7 +14,7 @@ const containerVariants = {
   }
 };
 
-const itemVariants: any = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20, rotateX: -10 },
   visible: { opacity: 1, y: 0, rotateX: 0, transition: { type: 'spring', stiffness: 100 } }
 };

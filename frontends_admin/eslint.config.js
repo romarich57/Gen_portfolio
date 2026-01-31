@@ -6,6 +6,20 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 import prettier from 'eslint-config-prettier';
 
 export default [
+  {
+    ignores: ['dist/**', 'node_modules/**', '**/*.d.ts']
+  },
+  {
+    files: ['**/*.config.js', '**/*.config.cjs', 'vite.config.js', 'playwright.config.js'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        __dirname: 'readonly',
+        module: 'readonly',
+        require: 'readonly'
+      }
+    }
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

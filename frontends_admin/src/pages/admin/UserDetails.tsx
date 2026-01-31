@@ -93,7 +93,7 @@ function UserDetails() {
       const result = await revealSensitive(id!, ['email'], confirmValue);
       setEmailFull(result.email_full ?? null);
       setRevealOpen(false);
-    } catch (err) {
+    } catch {
       setRevealError('Confirmation incorrecte.');
     }
   };

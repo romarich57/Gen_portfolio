@@ -48,6 +48,11 @@ services:
     restart: unless-stopped
     env_file:
       - ./apps/backend/.env.prod
+    environment:
+      # Trust the self-signed Redis certificate
+      NODE_EXTRA_CA_CERTS: /etc/ssl/private/redis-ca.crt
+    volumes:
+      - ./ops/redis/certs/stunnel.pem:/etc/ssl/private/redis-ca.crt:ro
     depends_on:
       db:
         condition: service_healthy

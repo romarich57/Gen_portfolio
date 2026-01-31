@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/app/providers/AuthBootstrap';
@@ -86,7 +85,7 @@ function ServiceStatus() {
   }
 
   if (isError || !data) {
-    const apiError = error as ApiError | undefined;
+    const apiError = error ? (error as unknown as ApiError) : undefined;
     const message =
       apiError?.code === 'NETWORK_ERROR'
         ? 'Impossible de contacter le serveur.'
@@ -115,7 +114,7 @@ function ServiceStatus() {
   const s3Avg = computeAverage(history.map((entry) => entry.services.s3.latency_ms ?? null));
   const redisAvg = computeAverage(history.map((entry) => entry.services.redis.latency_ms ?? null));
   const historyErrorMessage =
-    (historyFetchError as ApiError | undefined)?.code === 'NETWORK_ERROR'
+    (historyFetchError ? (historyFetchError as unknown as ApiError) : undefined)?.code === 'NETWORK_ERROR'
       ? 'Impossible de contacter le serveur.'
       : 'Impossible de charger l\'historique.';
 

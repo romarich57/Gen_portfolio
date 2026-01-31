@@ -916,6 +916,7 @@ router.post('/recovery-email', requireAuth, recoveryEmailLimiter, async (req, re
       }),
       text: buildEmailText({
         title: 'Validation de votre email de recuperation',
+        preview: 'Confirmez votre email de recuperation.',
         intro: 'Vous avez demande a ajouter un email de recuperation.',
         actionLabel: 'Confirmer mon email',
         actionUrl: verifyLink,
@@ -1029,7 +1030,7 @@ router.post('/password', requireAuth, async (req, res) => {
   if (!parseResult.success) {
     res.status(400).json({
       error: 'VALIDATION_ERROR',
-      message: parseResult.error.errors[0]?.message,
+      message: parseResult.error.issues[0]?.message,
       request_id: req.id
     });
     return;
@@ -1156,14 +1157,22 @@ router.post('/email', requireAuth, async (req, res) => {
   await sendEmail({
     to: newEmail,
     subject: 'Vérification de votre nouvel email',
-    html: buildEmailHtml(`
-      <h1>Changement d'email</h1>
-      <p>Vous avez demandé à changer votre email pour ${newEmail}.</p>
-      <p>Cliquez ci-dessous pour confirmer ce changement :</p>
-      <a href="${verifyLink}" class="button">Vérifier mon nouvel email</a>
-      <p>Ce lien expire dans 1 heure.</p>
-    `),
-    text: buildEmailText(`Vérifiez votre nouvel email : ${verifyLink}`)
+    html: buildEmailHtml({
+      title: 'Changement d\'email',
+      preview: 'Confirmez votre nouvel email.',
+      intro: `Vous avez demandé à changer votre email pour ${newEmail}.`,
+      actionLabel: 'Vérifier mon nouvel email',
+      actionUrl: verifyLink,
+      outro: 'Ce lien expire dans 1 heure.'
+    }),
+    text: buildEmailText({
+      title: 'Changement d\'email',
+      preview: 'Confirmez votre nouvel email.',
+      intro: `Vous avez demandé à changer votre email pour ${newEmail}.`,
+      actionLabel: 'Vérifier mon nouvel email',
+      actionUrl: verifyLink,
+      outro: 'Ce lien expire dans 1 heure.'
+    })
   });
 
   await writeAuditLog({

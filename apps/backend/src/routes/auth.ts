@@ -1109,7 +1109,7 @@ router.post('/phone/start', phoneStartLimiter, async (req, res) => {
   const acceptLanguage = normalizeHeader(req.headers['accept-language']);
   const defaultCountry = await resolveDefaultCountry(userId, parseResult.data.country, acceptLanguage);
   const normalizedPhone = normalizePhoneE164(parseResult.data.phoneE164, {
-    defaultCountry: defaultCountry ?? undefined
+    defaultCountry: defaultCountry ?? null
   });
   if (!normalizedPhone) {
     res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
@@ -1239,7 +1239,7 @@ router.post('/phone/check', phoneCheckLimiter, async (req, res) => {
   const acceptLanguage = normalizeHeader(req.headers['accept-language']);
   const defaultCountry = await resolveDefaultCountry(userId, parseResult.data.country, acceptLanguage);
   const normalizedPhone = normalizePhoneE164(parseResult.data.phoneE164, {
-    defaultCountry: defaultCountry ?? undefined
+    defaultCountry: defaultCountry ?? null
   });
   if (!normalizedPhone) {
     res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
@@ -1676,6 +1676,13 @@ router.post('/mfa/verify', async (req, res) => {
   }
 
   const meta = getRequestMeta(req);
+  let knownDevice = false;
+  if (meta.ip && meta.userAgent) {
+    const existingSession = await prisma.session.findFirst({
+      where: { userId: user.id, revokedAt: null, expiresAt: { gt: new Date() }, ip: meta.ip, userAgent: meta.userAgent }
+    });
+    knownDevice = Boolean(existingSession);
+  }
   const session = await createSession({
     userId: user.id,
     roles: user.roles as unknown as string[],
@@ -2184,7 +2191,7 @@ router.post('/set-password', async (req, res) => {
   if (!parseResult.success) {
     res.status(400).json({
       error: 'VALIDATION_ERROR',
-      message: parseResult.error.errors[0]?.message,
+      message: parseResult.error.issues[0]?.message,
       request_id: req.id
     });
     return;

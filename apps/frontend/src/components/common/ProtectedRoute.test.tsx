@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
@@ -58,6 +57,7 @@ describe('ProtectedRoute', () => {
         nationality: 'FR',
         locale: null,
         avatar_url: null,
+        connected_accounts: [],
         mfa_enabled: true,
         mfa_required: false,
         onboarding_completed_at: new Date().toISOString(),
@@ -98,6 +98,7 @@ describe('ProtectedRoute', () => {
         nationality: null,
         locale: null,
         avatar_url: null,
+        connected_accounts: [],
         mfa_enabled: false,
         mfa_required: false,
         onboarding_completed_at: null,
@@ -138,6 +139,7 @@ describe('ProtectedRoute', () => {
         nationality: 'FR',
         locale: null,
         avatar_url: null,
+        connected_accounts: [],
         mfa_enabled: false,
         mfa_required: true,
         onboarding_completed_at: new Date().toISOString(),

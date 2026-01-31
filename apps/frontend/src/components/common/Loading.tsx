@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Loading indicator.
  * Preconditions: used during async operations.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Button from '@/components/ui/Button';
@@ -52,7 +52,7 @@ function VerifyRecoveryEmail() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="text-center">
-        <Badge variant="outline">Securite</Badge>
+        <Badge className="border border-border bg-transparent text-mutedForeground">Securite</Badge>
         <h1 className="mt-3 text-3xl font-display font-semibold">Verification de l'email de recuperation</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Confirmez un email secondaire pour recuperer votre compte.

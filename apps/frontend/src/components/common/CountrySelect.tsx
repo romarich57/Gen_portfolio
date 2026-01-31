@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import Label from '@/components/ui/Label';
 import Input from '@/components/ui/Input';
@@ -18,8 +18,8 @@ type CountrySelectProps = {
 
 function flagEmoji(code: string) {
   if (code.length !== 2) return '';
-  const chars = code.toUpperCase().split('');
-  return String.fromCodePoint(127397 + chars[0].charCodeAt(0), 127397 + chars[1].charCodeAt(0));
+  const upper = code.toUpperCase();
+  return String.fromCodePoint(127397 + upper.charCodeAt(0), 127397 + upper.charCodeAt(1));
 }
 
 function CountrySelect({

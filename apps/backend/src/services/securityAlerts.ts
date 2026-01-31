@@ -104,17 +104,20 @@ export async function maybeSendLoginAlert(params: LoginAlertParams): Promise<voi
             intro: `Une nouvelle connexion a ete detectee depuis l'adresse IP ${ip}.`,
             actionLabel,
             actionUrl,
-            secondaryActionLabel,
-            secondaryActionUrl,
+            ...(secondaryActionLabel && secondaryActionUrl
+              ? { secondaryActionLabel, secondaryActionUrl }
+              : {}),
             outro: `Agent: ${ua}`
           }),
           text: buildEmailText({
             title: 'Nouvelle connexion detectee',
+            preview: 'Connexion inhabituelle sur votre compte.',
             intro: `Une nouvelle connexion a ete detectee depuis l'adresse IP ${ip}.`,
             actionLabel,
             actionUrl,
-            secondaryActionLabel,
-            secondaryActionUrl,
+            ...(secondaryActionLabel && secondaryActionUrl
+              ? { secondaryActionLabel, secondaryActionUrl }
+              : {}),
             outro: `Agent: ${ua}`
           })
         })

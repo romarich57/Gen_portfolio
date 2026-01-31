@@ -50,7 +50,7 @@ function SecurityRevokeSessions() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="text-center">
-        <Badge variant="outline">Sécurité</Badge>
+        <Badge className="border border-border bg-transparent text-mutedForeground">Sécurité</Badge>
         <h1 className="mt-3 text-3xl font-display font-semibold">Sécuriser votre compte</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Révocation immédiate des sessions actives.

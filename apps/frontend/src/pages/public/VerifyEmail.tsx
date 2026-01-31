@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Button from '@/components/ui/Button';
@@ -69,7 +69,7 @@ function VerifyEmail() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="text-center">
-        <Badge variant="outline">Verification</Badge>
+        <Badge className="border border-border bg-transparent text-mutedForeground">Verification</Badge>
         <h1 className="mt-3 text-3xl font-display font-semibold">Verification de votre email</h1>
         <p className="mt-2 text-sm text-mutedForeground">
           Finalisez votre inscription en quelques instants.

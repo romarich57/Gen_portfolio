@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Button from '@/components/ui/Button';
@@ -46,7 +46,7 @@ function PhoneVerify() {
     }
   }, [country, user?.nationality]);
 
-  const handleStart = async (event: React.FormEvent) => {
+  const handleStart = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
@@ -57,7 +57,11 @@ function PhoneVerify() {
         setError('Numero invalide.');
         return;
       }
-      await startPhoneVerify({ phoneE164: normalized, country: country || undefined });
+      const payload = {
+        phoneE164: normalized,
+        ...(country ? { country } : {})
+      };
+      await startPhoneVerify(payload);
       setStep('check');
     } catch (err) {
       if (isApiError(err)) {
@@ -91,7 +95,7 @@ function PhoneVerify() {
     }
   };
 
-  const handleCheck = async (event: React.FormEvent) => {
+  const handleCheck = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setLoading(true);
@@ -102,7 +106,12 @@ function PhoneVerify() {
         setError('Numero invalide.');
         return;
       }
-      await checkPhoneVerify({ phoneE164: normalized, code, country: country || undefined });
+      const payload = {
+        phoneE164: normalized,
+        code,
+        ...(country ? { country } : {})
+      };
+      await checkPhoneVerify(payload);
       try {
         const nextUser = await refreshUser();
         if (nextUser) {

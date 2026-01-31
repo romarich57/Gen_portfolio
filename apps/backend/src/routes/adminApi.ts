@@ -31,7 +31,7 @@ function resolvePrimaryRole(roles: UserRole[] | string[]): UserRole {
 
 function maskEmail(email: string | null): string | null {
   if (!email) return null;
-  const [local, domain] = email.split('@');
+  const [local = '', domain = ''] = email.split('@');
   if (!domain) return '***';
   const localSafe = local.length <= 2 ? `${local[0] ?? ''}***` : `${local.slice(0, 2)}***`;
   const domainParts = domain.split('.');
@@ -187,8 +187,9 @@ router.get('/users', async (req, res) => {
 
   const cursorPayload = decodeCursor(cursor);
   if (cursorPayload) {
+    const andFilters = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
     where.AND = [
-      ...(where.AND ?? []),
+      ...andFilters,
       {
         OR: [
           { createdAt: { lt: cursorPayload.createdAt } },
@@ -215,7 +216,8 @@ router.get('/users', async (req, res) => {
     flags: { email_verified: Boolean(user.emailVerifiedAt) }
   }));
 
-  const nextCursor = hasMore ? encodeCursor({ createdAt: users[limit].createdAt, id: users[limit].id }) : null;
+  const nextItem = hasMore ? users[limit] : null;
+  const nextCursor = nextItem ? encodeCursor({ createdAt: nextItem.createdAt, id: nextItem.id }) : null;
 
   res.json({ items, nextCursor, request_id: req.id });
 });
@@ -734,7 +736,13 @@ router.patch('/plans/:planId', requireSuperAdmin, async (req, res) => {
     return;
   }
 
-  const plan = await prisma.plan.findUnique({ where: { id: req.params.planId } });
+  const planId = req.params.planId;
+  if (!planId || Array.isArray(planId)) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
+    return;
+  }
+
+  const plan = await prisma.plan.findUnique({ where: { id: planId } });
   if (!plan) {
     res.status(404).json({ error: 'NOT_FOUND', request_id: req.id });
     return;
@@ -774,13 +782,17 @@ router.patch('/plans/:planId', requireSuperAdmin, async (req, res) => {
 
   await prisma.plan.update({ where: { id: plan.id }, data: updates });
 
+  const auditUpdates = Object.fromEntries(
+    Object.entries(parseResult.data).filter(([, value]) => typeof value !== 'undefined')
+  );
+
   await writeAuditLog({
     actorUserId: req.user?.id ?? null,
     actorIp: req.ip ?? null,
     action: 'ADMIN_PLAN_UPDATED',
     targetType: 'plan',
     targetId: plan.id,
-    metadata: { updates },
+    metadata: { updates: auditUpdates },
     requestId: req.id
   });
 
@@ -821,12 +833,16 @@ router.post('/stripe/coupons', requireSuperAdmin, async (req, res) => {
     return;
   }
 
-  const coupon = await stripe.coupons.create({
-    duration,
-    percent_off: percent_off ?? undefined,
-    amount_off: amount_off ?? undefined,
-    currency: amount_off ? 'eur' : undefined
-  });
+  const couponPayload: Record<string, unknown> = { duration };
+  if (typeof percent_off === 'number') {
+    couponPayload.percent_off = percent_off;
+  }
+  if (typeof amount_off === 'number') {
+    couponPayload.amount_off = amount_off;
+    couponPayload.currency = 'eur';
+  }
+
+  const coupon = await stripe.coupons.create(couponPayload);
   const promo = await stripe.promotionCodes.create({
     coupon: coupon.id,
     code
@@ -1022,8 +1038,9 @@ router.get('/audit', async (req, res) => {
 
   const cursorPayload = decodeCursor(cursor);
   if (cursorPayload) {
+    const andFilters = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
     where.AND = [
-      ...(where.AND ?? []),
+      ...andFilters,
       {
         OR: [
           { timestamp: { lt: cursorPayload.createdAt } },
@@ -1050,7 +1067,8 @@ router.get('/audit', async (req, res) => {
     metadata: log.metadata
   }));
 
-  const nextCursor = hasMore ? encodeCursor({ createdAt: logs[limit].timestamp, id: logs[limit].id }) : null;
+  const nextLog = hasMore ? logs[limit] : null;
+  const nextCursor = nextLog ? encodeCursor({ createdAt: nextLog.timestamp, id: nextLog.id }) : null;
 
   res.json({ items, nextCursor, request_id: req.id });
 });
@@ -1080,8 +1098,9 @@ router.get('/exports', async (req, res) => {
 
   const cursorPayload = decodeCursor(cursor);
   if (cursorPayload) {
+    const andFilters = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : [];
     where.AND = [
-      ...(where.AND ?? []),
+      ...andFilters,
       {
         OR: [
           { requestedAt: { lt: cursorPayload.createdAt } },
@@ -1106,7 +1125,8 @@ router.get('/exports', async (req, res) => {
     ready_at: exp.readyAt,
     expires_at: exp.expiresAt
   }));
-  const nextCursor = hasMore ? encodeCursor({ createdAt: exports[limit].requestedAt, id: exports[limit].id }) : null;
+  const nextExport = hasMore ? exports[limit] : null;
+  const nextCursor = nextExport ? encodeCursor({ createdAt: nextExport.requestedAt, id: nextExport.id }) : null;
 
   res.json({ items, nextCursor, request_id: req.id });
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
@@ -127,7 +127,7 @@ function Profile() {
   const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string | undefined>>({});
   const [onboardingFieldErrors, setOnboardingFieldErrors] = useState<Record<string, string | undefined>>({});
   const [avatarUploading, setAvatarUploading] = useState(false);
-  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // OAuth disconnect state
   const [disconnectingProvider, setDisconnectingProvider] = useState<string | null>(null);
@@ -227,19 +227,25 @@ function Profile() {
   }, [profile]);
 
   // Handlers
-  const handleProfileSubmit = async (event: React.FormEvent) => {
+  const handleProfileSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setProfileError(null);
     setProfileFieldErrors({});
     setProfileLoading(true);
     try {
-      await patchMe({
-        first_name: profileForm.first_name || undefined,
-        last_name: profileForm.last_name || undefined,
-        username: profileForm.username || undefined,
-        nationality: profileForm.nationality || undefined,
-        locale: profileForm.locale || undefined
-      });
+      const payload: {
+        first_name?: string;
+        last_name?: string;
+        username?: string;
+        nationality?: string;
+        locale?: string;
+      } = {};
+      if (profileForm.first_name) payload.first_name = profileForm.first_name;
+      if (profileForm.last_name) payload.last_name = profileForm.last_name;
+      if (profileForm.username) payload.username = profileForm.username;
+      if (profileForm.nationality) payload.nationality = profileForm.nationality;
+      if (profileForm.locale) payload.locale = profileForm.locale;
+      await patchMe(payload);
       await refetchProfile();
       await refreshUser();
       showToast('Profil mis à jour.', 'success');
@@ -251,7 +257,7 @@ function Profile() {
     }
   };
 
-  const handleOnboardingSubmit = async (event: React.FormEvent) => {
+  const handleOnboardingSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setOnboardingError(null);
     setOnboardingFieldErrors({});
@@ -352,7 +358,7 @@ function Profile() {
     }
   };
 
-  const handleRecoveryEmailSubmit = async (event: React.FormEvent) => {
+  const handleRecoveryEmailSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setRecoveryEmailError(null);
     setRecoveryEmailSent(null);
@@ -601,7 +607,7 @@ function Profile() {
                           label="Nationalité"
                           value={onboardingForm.nationality}
                           onChange={v => setOnboardingForm({ ...onboardingForm, nationality: v })}
-                          error={onboardingFieldErrors.nationality}
+                          error={onboardingFieldErrors.nationality ?? null}
                         />
                       </div>
                       <div className="sm:col-span-2 pt-4">
@@ -741,6 +747,7 @@ function Profile() {
                         label="Nationalité"
                         value={profileForm.nationality}
                         onChange={v => setProfileForm({ ...profileForm, nationality: v })}
+                        error={profileFieldErrors.nationality ?? null}
                         disabled={isOnboardingRequired ?? false}
                       />
                     </div>
@@ -765,7 +772,7 @@ function Profile() {
               <div className="grid gap-4">
                 <OAuthProviderItem
                   name="Google"
-                  connected={profile?.connected_accounts.includes('google')}
+                  connected={Boolean(profile?.connected_accounts?.includes('google'))}
                   icon={<Icons.Google />}
                   disconnecting={disconnectingProvider === 'google'}
                   onDisconnect={async () => {
@@ -794,7 +801,7 @@ function Profile() {
                 />
                 <OAuthProviderItem
                   name="GitHub"
-                  connected={profile?.connected_accounts.includes('github')}
+                  connected={Boolean(profile?.connected_accounts?.includes('github'))}
                   icon={<Icons.GitHub />}
                   disconnecting={disconnectingProvider === 'github'}
                   onDisconnect={async () => {
@@ -1516,7 +1523,7 @@ function Profile() {
 }
 
 // Sub-components
-function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
+function SidebarItem({ icon, label, active, onClick }: { icon: ReactNode, label: string, active: boolean, onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -1543,7 +1550,7 @@ function Field({
 }: {
   label: string,
   error?: string | null | undefined,
-  children: React.ReactNode,
+  children: ReactNode,
   htmlFor?: string
 }) {
   return (
@@ -1567,7 +1574,7 @@ function OAuthProviderItem({
 }: {
   name: string,
   connected?: boolean,
-  icon: React.ReactNode,
+  icon: ReactNode,
   disconnecting?: boolean,
   onDisconnect?: () => void,
   onConnect?: () => void

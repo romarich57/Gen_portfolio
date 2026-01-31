@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Button from '@/components/ui/Button';
@@ -53,7 +53,7 @@ function CompleteProfile() {
     return next;
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setFieldErrors({});
@@ -162,7 +162,7 @@ function CompleteProfile() {
           value={form.nationality}
           onChange={(value) => setForm((prev) => ({ ...prev, nationality: value }))}
           required
-          error={fieldErrors.nationality}
+          error={fieldErrors.nationality ?? null}
         />
 
         <Button type="submit" size="lg" disabled={!csrfToken || loading || !formValid} className="w-full">

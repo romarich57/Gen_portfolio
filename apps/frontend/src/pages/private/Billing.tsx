@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
 import Button from '@/components/ui/Button';
@@ -7,8 +7,8 @@ import Badge from '@/components/ui/Badge';
 import ErrorBanner from '@/components/common/ErrorBanner';
 import Loading from '@/components/common/Loading';
 import { createCheckoutSession, createPortalSession, getBillingStatus } from '@/api/billing';
-import { useAuth } from '@/app/providers/AuthBootstrap';
 import type { ApiError } from '@/api/http';
+import { useAuth } from '@/app/providers/AuthBootstrap';
 
 const upgradeOptions = [
   {
@@ -48,7 +48,7 @@ function Billing() {
 
   const billingErrorMessage = useMemo(() => {
     if (!billingError) return 'Impossible de charger le billing.';
-    const apiError = billingError as ApiError;
+    const apiError = billingError as unknown as ApiError;
     if (apiError.code === 'NETWORK_ERROR') {
       return 'Impossible de contacter le serveur.';
     }
@@ -62,7 +62,7 @@ function Billing() {
       const response = await createCheckoutSession({ planCode });
       window.location.assign(response.checkout_url);
     } catch (err) {
-      const apiError = err as ApiError;
+      const apiError = err as unknown as ApiError;
       if (apiError.code === 'CAPTCHA_REQUIRED') {
         setError('Verification anti-bot requise. Reessayez plus tard.');
       } else if (apiError.code === 'PLAN_INVALID') {
@@ -84,7 +84,7 @@ function Billing() {
       const response = await createPortalSession();
       window.location.assign(response.portal_url);
     } catch (err) {
-      const apiError = err as ApiError;
+      const apiError = err as unknown as ApiError;
       if (apiError.code === 'NETWORK_ERROR') {
         setError('Impossible de contacter le serveur.');
       } else {

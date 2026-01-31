@@ -17,8 +17,7 @@ const createResponse = (status: number, body: unknown) => ({
 describe('apiRequest', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // @ts-expect-error mock fetch
-    global.fetch = vi.fn();
+    vi.stubGlobal('fetch', vi.fn());
   });
 
   it('adds CSRF token for state-changing requests', async () => {
@@ -28,7 +27,8 @@ describe('apiRequest', () => {
 
     await apiRequest('/test', { method: 'POST', body: JSON.stringify({}) });
 
-    const [, options] = fetchMock.mock.calls[0];
+    const call = fetchMock.mock.calls[0] ?? [];
+    const options = (call[1] ?? {}) as RequestInit;
     const headers = options.headers as Headers;
     expect(headers.get('X-CSRF-Token')).toBe('csrf-token');
     expect(options.credentials).toBe('include');

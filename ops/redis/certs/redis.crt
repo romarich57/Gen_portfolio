@@ -1,0 +1,105 @@
+-----BEGIN PRIVATE KEY-----
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDXzinEKZGHdHpa
+nok/olZmSJSjLPTp4fAmOmikvQVPuRyAzj+it3Al9ExErlHQnAcw2/kPt4k3/sgb
+4ITHlVstToSwnCnQQqzJcZMedYXqe1Si3IzjjxYq19MG0h3+pdnAH11nrZTLdX+K
+ek8ceD8z8woxje9XlOsI7+jGAjNpuWodMcY3NDj4Lez8sgFJoh78lTMDI/2K+A73
+Rfmwnn0VHlrR2LSZX4PyVkSaF1zmTssgShISVzN/zo7RuSYAqoRxYoPpbpUoRbRH
+28JZv2+9aS9HyP4XxbVUM9jAC8UJFADbQq9Uch8yoXwTxEPTp0UK6b76u3fIjsCO
+FZTmrMx3AgMBAAECggEAVMFgf+0/fa6OW0bGapqMSlGZJtkCO1UEJ09rR8AA9QWj
+nybhsTtQLWfcCGFaOo78+AB8ueKAXuCOoPw1ydjr3UhoLqC2f1egWuFjQWQwux3C
+6M+r+bd5okvvUk91fkyOz7jBy3VN6fZ0p+NPbMQBNpruVvYCmSgggvsONa4pmQyD
+MevbB9KSvUswJ8AlwMMKOofAWfYZTeLpLjSgZU10yj1juwS7bhkq7hCYaDzlzaWq
+pxqzUpK/2d5hHATYlXWKlSneEzD8xfiqQBMqpIZX6xoYS31gkZlhK4QEjmZ2AYIp
+zDLxmZGwPlHNBGIH6Nh9gSm9NfM/LPE4pFjxE9sbmQKBgQD3u7KfPuy5KnKsrRIH
+95BHx1IQWhy8BQ/jtDKHPxvAy+VHzoD4OybuhfSH6qL3xYw5dAQLD9hMJe+eLCaz
+E4hSCv/0kTxrN2aESxjoUExHX68EimkDpBiIhbpwPgi12Fx7coSwIHn6HXdMUBLf
+MIXiO+OCD3z7FskbWvsHYKZftQKBgQDfAbdbhxZ9XkHn1QH09IeXZhjn5vUkQxj2
+oGvKleUFWjLwGTqwZQ7Ugi2dhrZ8WzzhxTRjjfUv7khgtE/+ZV6WqyCTaW6GxG3C
+17K989ZaybNo4GNZdM0GPzhe4svYVqOn6wwYSB32HhsV0EEXB6QDYVt9x6SPxNq+
+sgxx9xbe+wKBgB2OZEpBjKau3M2jPHJ849bcffr7dVAtXm7xUdH3Ao2nBeziQ1ra
+W9O7YahRoy3igM9d+xmCw3CaWhNJ+zgETZBURaNdLJMyIeYIu6kD44XkcZIeHVdU
+3aR0KAE6NXnUnXwQ9qm4xjTEDTaqmwXL2T1bndInnOasGkRMP4Tq0A69AoGAXGz/
+q4WPgqJAOm+EAhwe3lbIV8TXMRJGFGFki3AYnWFG30/1jQo1XUoe0bz1gRDnaMMs
+9V3uktD1Wm8hAFTPIS8Hr1DxKBXdT/XJ9QRMgRA7tWnag0bvenlVSa5BwgYWig/W
+0XGCSXEs1JudfogCKAx/uN+3ioaSCpsMoWdBKWUCgYBn6JjPz+Yiu7tOZ37Rn4DQ
+Td1EML1fE+pKocKImKe4tyRyEFB0cqbpXsFYR9WzoDmnsQNmI84my3UvnxW7JFeZ
+oYjj3kbAj/v6sMCsP9P77HtKmBwQpIgFp4IDuRKviLbosrp0e1SXk9Qrs1L/xQ1Y
+kHCuy2cpelv1IUUfj+emBQ==
+-----END PRIVATE KEY-----
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            16:73:c2:9b:4b:51:38:9a:bc:47:69:73:46:50:af:1a:d6:96:84:e2
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN=redis-tls
+        Validity
+            Not Before: Jan 31 13:32:01 2026 GMT
+            Not After : Jan 29 13:32:01 2036 GMT
+        Subject: CN=redis-tls
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:d7:ce:29:c4:29:91:87:74:7a:5a:9e:89:3f:a2:
+                    56:66:48:94:a3:2c:f4:e9:e1:f0:26:3a:68:a4:bd:
+                    05:4f:b9:1c:80:ce:3f:a2:b7:70:25:f4:4c:44:ae:
+                    51:d0:9c:07:30:db:f9:0f:b7:89:37:fe:c8:1b:e0:
+                    84:c7:95:5b:2d:4e:84:b0:9c:29:d0:42:ac:c9:71:
+                    93:1e:75:85:ea:7b:54:a2:dc:8c:e3:8f:16:2a:d7:
+                    d3:06:d2:1d:fe:a5:d9:c0:1f:5d:67:ad:94:cb:75:
+                    7f:8a:7a:4f:1c:78:3f:33:f3:0a:31:8d:ef:57:94:
+                    eb:08:ef:e8:c6:02:33:69:b9:6a:1d:31:c6:37:34:
+                    38:f8:2d:ec:fc:b2:01:49:a2:1e:fc:95:33:03:23:
+                    fd:8a:f8:0e:f7:45:f9:b0:9e:7d:15:1e:5a:d1:d8:
+                    b4:99:5f:83:f2:56:44:9a:17:5c:e6:4e:cb:20:4a:
+                    12:12:57:33:7f:ce:8e:d1:b9:26:00:aa:84:71:62:
+                    83:e9:6e:95:28:45:b4:47:db:c2:59:bf:6f:bd:69:
+                    2f:47:c8:fe:17:c5:b5:54:33:d8:c0:0b:c5:09:14:
+                    00:db:42:af:54:72:1f:32:a1:7c:13:c4:43:d3:a7:
+                    45:0a:e9:be:fa:bb:77:c8:8e:c0:8e:15:94:e6:ac:
+                    cc:77
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Key Identifier: 
+                FA:8C:30:30:5A:0A:21:33:30:03:31:EA:B8:0D:A7:7D:4C:4B:EC:7E
+            X509v3 Authority Key Identifier: 
+                FA:8C:30:30:5A:0A:21:33:30:03:31:EA:B8:0D:A7:7D:4C:4B:EC:7E
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+    Signature Algorithm: sha256WithRSAEncryption
+    Signature Value:
+        ca:ee:7e:d9:aa:16:e6:20:36:ba:cd:9e:df:46:e0:45:2d:28:
+        1b:83:b9:a5:0d:2c:ab:ea:ca:b8:75:4d:ae:8c:27:1f:0c:91:
+        44:f1:57:c4:e3:3a:62:0f:23:b1:ed:98:e9:39:c6:f0:a4:58:
+        45:a8:91:ae:60:c9:d1:24:29:3b:9d:75:93:d0:f2:22:61:f5:
+        91:9d:16:dc:18:89:21:7e:c3:84:d9:da:bd:f2:42:31:68:12:
+        a8:b0:22:7a:07:ec:33:7c:3b:e5:05:fa:fc:a2:51:15:4f:77:
+        c3:d0:7b:c0:45:00:e4:9a:1f:7b:a9:7c:8d:81:9a:1f:6e:94:
+        53:97:fb:86:f4:22:2a:3d:4e:12:ed:ef:bb:13:63:5e:f7:db:
+        06:3b:3d:b7:67:90:b4:03:3f:23:f6:87:4c:bb:02:89:d4:e0:
+        88:3a:d8:fe:6b:c5:4a:e1:6c:e0:60:7d:75:00:c6:09:7d:cb:
+        75:fd:78:69:f1:a5:d3:0c:d9:08:87:e0:8e:b3:bd:e0:32:a4:
+        b2:d6:2f:f8:1b:d4:8e:1d:d3:26:bc:c1:e0:db:33:82:2f:00:
+        a2:f7:99:af:9c:97:bd:c3:8f:58:60:10:7c:ff:07:26:a1:c8:
+        a4:e8:77:25:ef:b3:76:df:98:c1:44:dc:57:23:f5:a5:a2:5b:
+        49:8f:34:12
+-----BEGIN CERTIFICATE-----
+MIIDCTCCAfGgAwIBAgIUFnPCm0tROJq8R2lzRlCvGtaWhOIwDQYJKoZIhvcNAQEL
+BQAwFDESMBAGA1UEAwwJcmVkaXMtdGxzMB4XDTI2MDEzMTEzMzIwMVoXDTM2MDEy
+OTEzMzIwMVowFDESMBAGA1UEAwwJcmVkaXMtdGxzMIIBIjANBgkqhkiG9w0BAQEF
+AAOCAQ8AMIIBCgKCAQEA184pxCmRh3R6Wp6JP6JWZkiUoyz06eHwJjpopL0FT7kc
+gM4/ordwJfRMRK5R0JwHMNv5D7eJN/7IG+CEx5VbLU6EsJwp0EKsyXGTHnWF6ntU
+otyM448WKtfTBtId/qXZwB9dZ62Uy3V/inpPHHg/M/MKMY3vV5TrCO/oxgIzablq
+HTHGNzQ4+C3s/LIBSaIe/JUzAyP9ivgO90X5sJ59FR5a0di0mV+D8lZEmhdc5k7L
+IEoSElczf86O0bkmAKqEcWKD6W6VKEW0R9vCWb9vvWkvR8j+F8W1VDPYwAvFCRQA
+20KvVHIfMqF8E8RD06dFCum++rt3yI7AjhWU5qzMdwIDAQABo1MwUTAdBgNVHQ4E
+FgQU+owwMFoKITMwAzHquA2nfUxL7H4wHwYDVR0jBBgwFoAU+owwMFoKITMwAzHq
+uA2nfUxL7H4wDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAyu5+
+2aoW5iA2us2e30bgRS0oG4O5pQ0sq+rKuHVNrownHwyRRPFXxOM6Yg8jse2Y6TnG
+8KRYRaiRrmDJ0SQpO511k9DyImH1kZ0W3BiJIX7DhNnavfJCMWgSqLAiegfsM3w7
+5QX6/KJRFU93w9B7wEUA5Jofe6l8jYGaH26UU5f7hvQiKj1OEu3vuxNjXvfbBjs9
+t2eQtAM/I/aHTLsCidTgiDrY/mvFSuFs4GB9dQDGCX3Ldf14afGl0wzZCIfgjrO9
+4DKkstYv+BvUjh3TJrzB4Nszgi8AoveZr5yXvcOPWGAQfP8HJqHIpOh3Je+zdt+Y
+wUTcVyP1paJbSY80Eg==
+-----END CERTIFICATE-----

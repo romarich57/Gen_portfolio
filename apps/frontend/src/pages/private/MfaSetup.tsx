@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Button from '@/components/ui/Button';
@@ -51,7 +51,7 @@ function MfaSetup() {
     return () => {
       active = false;
     };
-  }, [csrfToken]);
+  }, [csrfToken, navigate]);
 
   useEffect(() => {
     if (!otpauthUrl) return;
@@ -78,7 +78,7 @@ function MfaSetup() {
     };
   }, [otpauthUrl]);
 
-  const handleConfirm = async (event: React.FormEvent) => {
+  const handleConfirm = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setLoading(true);

@@ -53,7 +53,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
       }
       throw err;
     }
-  }, [showToast]);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -109,7 +109,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [showInitErrorOnce]);
 
   const value = useMemo<AuthContextValue>(
     () => ({ user, loading, csrfToken, refreshUser, setUser, logout }),

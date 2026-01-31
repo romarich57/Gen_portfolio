@@ -287,7 +287,7 @@ function Profile() {
     try {
       const { checkout_url } = await createCheckoutSession({ planCode });
       window.location.assign(checkout_url);
-    } catch (err) {
+    } catch {
       setBillingErrorMsg('Impossible de démarrer le paiement.');
     } finally {
       setBillingLoading(false);
@@ -300,7 +300,7 @@ function Profile() {
     try {
       const { portal_url } = await createPortalSession();
       window.location.assign(portal_url);
-    } catch (err) {
+    } catch {
       setBillingErrorMsg('Impossible d\'ouvrir le portail de gestion.');
     } finally {
       setBillingLoading(false);
@@ -472,9 +472,13 @@ function Profile() {
     }
   };
 
-  const handleApiError = (err: ApiError, setMsg: (m: string) => void, setFields: (f: any) => void) => {
+  const handleApiError = (
+    err: ApiError,
+    setMsg: (m: string) => void,
+    setFields: (f: Record<string, string | undefined>) => void
+  ) => {
     if (err.code === 'VALIDATION_ERROR') {
-      const mapped: any = {};
+      const mapped: Record<string, string | undefined> = {};
       const normalizeFieldMessage = (message?: string) => {
         if (!message) return 'Champ invalide';
         if (message === 'country_invalid') return 'Code pays ISO2 invalide';

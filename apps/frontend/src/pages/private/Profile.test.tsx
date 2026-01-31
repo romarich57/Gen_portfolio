@@ -14,11 +14,11 @@ const mockGetSessions = vi.fn();
 const mockRefreshUser = vi.fn();
 
 vi.mock('@/api/me', () => ({
-  getMe: (...args: any[]) => mockGetMe(...args),
-  getOnboardingStatus: (...args: any[]) => mockGetOnboarding(...args),
-  patchOnboarding: (...args: any[]) => mockPatchOnboarding(...args),
-  patchMe: (...args: any[]) => mockPatchMe(...args),
-  getSessions: (...args: any[]) => mockGetSessions(...args)
+  getMe: (...args: unknown[]) => mockGetMe(...args),
+  getOnboardingStatus: (...args: unknown[]) => mockGetOnboarding(...args),
+  patchOnboarding: (...args: unknown[]) => mockPatchOnboarding(...args),
+  patchMe: (...args: unknown[]) => mockPatchMe(...args),
+  getSessions: (...args: unknown[]) => mockGetSessions(...args)
 }));
 
 vi.mock('@/app/providers/AuthBootstrap', () => ({

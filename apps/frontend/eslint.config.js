@@ -11,6 +11,9 @@ import prettier from 'eslint-config-prettier';
  * Postconditions: linting enforces hooks/a11y and disables formatting conflicts.
  */
 export default [
+  {
+    ignores: ['dist/**', 'node_modules/**']
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

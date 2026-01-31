@@ -16,7 +16,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@/api/auth', () => ({
-    register: (...args: any[]) => mockRegister(...args),
+    register: (...args: unknown[]) => mockRegister(...args),
     resendEmailVerification: vi.fn()
 }));
 

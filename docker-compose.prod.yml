@@ -21,6 +21,28 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - redis-data:/data
+    networks:
+      - saas-prod-net
+
+  redis-tls:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      - redis
+    networks:
+      - saas-prod-net
+    volumes:
+      - ./ops/redis/stunnel.conf:/etc/stunnel/stunnel.conf:ro
+      - ./ops/redis/certs:/etc/stunnel/certs:ro
+    command: >
+      sh -lc "apk add --no-cache stunnel && stunnel /etc/stunnel/stunnel.conf"
+
   backend:
     image: ${BACKEND_IMAGE}
     restart: unless-stopped
@@ -98,3 +120,4 @@ networks:
 
 volumes:
   db-data:
+  redis-data:

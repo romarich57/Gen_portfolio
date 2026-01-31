@@ -176,7 +176,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            cd /opt/saas-builder
+            cd /home/ubuntu/Saas_builder/Saas_builder
 
             # Login GHCR SUR VPS
             # => Utilise un token "deploy" dédié stocké en secret (lecture packages).

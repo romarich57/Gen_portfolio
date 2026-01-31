@@ -42,6 +42,7 @@ app.use(globalLimiter);
 app.use(csrfProtection);
 
 app.use('/health', healthRouter);
+app.use('/api/health', healthRouter);
 app.use('/auth', authRouter);
 app.use('/api/admin', adminApiRouter);
 app.use(onboardingGate);

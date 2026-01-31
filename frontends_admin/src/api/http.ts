@@ -24,7 +24,10 @@ function normalizeError(status: number, payload: unknown): ApiError {
     const errorCode = (payload as { error?: string }).error ?? 'REQUEST_FAILED';
     const requestId = (payload as { request_id?: string }).request_id;
     const fields = (payload as { fields?: string[] }).fields;
-    return { code: errorCode, message: 'Request failed', status, requestId, fields };
+    const result: ApiError = { code: errorCode, message: 'Request failed', status };
+    if (requestId) result.requestId = requestId;
+    if (fields) result.fields = fields;
+    return result;
   }
   return { code: 'REQUEST_FAILED', message: 'Request failed', status };
 }

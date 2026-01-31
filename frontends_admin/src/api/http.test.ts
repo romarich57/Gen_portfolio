@@ -16,7 +16,8 @@ describe('apiRequest', () => {
     await apiRequest('/api/admin/test', { method: 'POST', body: '{}' });
 
     expect(fetchSpy).toHaveBeenCalled();
-    const [, options] = fetchSpy.mock.calls[0];
+    const call = fetchSpy.mock.calls[0] ?? [];
+    const options = (call[1] ?? {}) as RequestInit;
     expect(options.credentials).toBe('include');
     expect((options.headers as Headers).get('X-CSRF-Token')).toBe('csrf-token');
   });

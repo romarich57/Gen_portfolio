@@ -18,6 +18,22 @@ type PlanFormState = {
   create_new_price: boolean;
 };
 
+type PlanCreatePayload = {
+  code: string;
+  name_fr: string;
+  price_eur_cents: number;
+  project_limit?: number | null;
+  credits_monthly?: number | null;
+  create_stripe?: boolean;
+};
+
+type CouponPayload = {
+  percent_off?: number;
+  amount_off?: number;
+  duration: string;
+  code: string;
+};
+
 function Plans() {
   const admin = useOutletContext<AdminMe>();
   const queryClient = useQueryClient();
@@ -45,7 +61,7 @@ function Plans() {
   });
 
   const createMutation = useMutation({
-    mutationFn: createPlan,
+    mutationFn: (payload: PlanCreatePayload) => createPlan(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-plans'] });
       handleMessage('Plan cree.');
@@ -54,7 +70,7 @@ function Plans() {
   });
 
   const couponMutation = useMutation({
-    mutationFn: createCoupon,
+    mutationFn: (payload: CouponPayload) => createCoupon(payload),
     onSuccess: () => handleMessage('Coupon Stripe cree.'),
     onError: () => handleError('Impossible de creer le coupon.')
   });
@@ -199,7 +215,7 @@ function PlanCard({
   );
 }
 
-function PlanCreateCard({ onSubmit }: { onSubmit: (payload: Record<string, unknown>) => void }) {
+function PlanCreateCard({ onSubmit }: { onSubmit: (payload: PlanCreatePayload) => void }) {
   const [code, setCode] = useState('FREE');
   const [name, setName] = useState('');
   const [price, setPrice] = useState(0);
@@ -280,7 +296,7 @@ function PlanCreateCard({ onSubmit }: { onSubmit: (payload: Record<string, unkno
   );
 }
 
-function CouponCard({ onSubmit }: { onSubmit: (payload: Record<string, unknown>) => void }) {
+function CouponCard({ onSubmit }: { onSubmit: (payload: CouponPayload) => void }) {
   const [code, setCode] = useState('');
   const [percentOff, setPercentOff] = useState<number | ''>('');
   const [amountOff, setAmountOff] = useState<number | ''>('');
@@ -327,14 +343,12 @@ function CouponCard({ onSubmit }: { onSubmit: (payload: Record<string, unknown>)
         <div className="md:col-span-4 flex justify-end">
           <Button
             variant="outline"
-            onClick={() =>
-              onSubmit({
-                code,
-                percent_off: percentOff === '' ? undefined : Number(percentOff),
-                amount_off: amountOff === '' ? undefined : Number(amountOff),
-                duration
-              })
-            }
+            onClick={() => {
+              const payload: CouponPayload = { code, duration };
+              if (percentOff !== '') payload.percent_off = Number(percentOff);
+              if (amountOff !== '') payload.amount_off = Number(amountOff);
+              onSubmit(payload);
+            }}
           >
             Creer le coupon
           </Button>

@@ -48,6 +48,10 @@ function App() {
     return <AccessDenied />;
   }
 
+  if (!adminQuery.data) {
+    return <AccessDenied />;
+  }
+
   return <RouterProvider router={router(adminQuery.data)} />;
 }
 

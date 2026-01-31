@@ -10,9 +10,11 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
-  ADMIN_IMAGE: ghcr.io/${{ github.repository }}/admin
+  OWNER: romarich57
+  # Noms d’images STABLES et lowercase (indépendants du nom du repo)
+  BACKEND_IMAGE: ghcr.io/romarich57/saas-builder-backend
+  FRONTEND_IMAGE: ghcr.io/romarich57/saas-builder-frontend
+  ADMIN_IMAGE: ghcr.io/romarich57/saas-builder-admin
 
 jobs:
   tests:
@@ -33,35 +35,46 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+
+      # -------- BACKEND --------
       - name: Backend deps
         working-directory: apps/backend
         run: npm ci
+
       - name: Backend Prisma validate
         working-directory: apps/backend
         run: npx prisma validate
+
       - name: Backend lint
         working-directory: apps/backend
         run: npm run lint
+
       - name: Backend typecheck
         working-directory: apps/backend
         run: npm run typecheck
+
       - name: Backend tests
         working-directory: apps/backend
         run: npm test
 
+      # -------- FRONTEND --------
       - name: Frontend deps
         working-directory: apps/frontend
         run: npm ci
+
       - name: Frontend lint
         working-directory: apps/frontend
         run: npm run lint
+
       - name: Frontend tests
         working-directory: apps/frontend
         run: npm run test
+
       - name: Frontend build
         working-directory: apps/frontend
         env:
@@ -69,15 +82,19 @@ jobs:
           VITE_APP_BASE_URL: ${{ vars.VITE_APP_BASE_URL }}
         run: npm run build
 
+      # -------- ADMIN --------
       - name: Admin deps
         working-directory: frontends_admin
         run: npm ci --legacy-peer-deps
+
       - name: Admin lint
         working-directory: frontends_admin
         run: npm run lint
+
       - name: Admin tests
         working-directory: frontends_admin
         run: npm run test
+
       - name: Admin build
         working-directory: frontends_admin
         env:
@@ -90,11 +107,15 @@ jobs:
     needs: tests
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
+
+      # Login GHCR avec le token GitHub natif (plus simple)
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: docker/setup-buildx-action@v3
 
       - name: Build & push backend
@@ -145,9 +166,20 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             set -e
-            docker login ${{ env.REGISTRY }} -u ${{ github.actor }} -p ${{ secrets.GHCR_TOKEN }}
             cd /opt/saas-builder
+
+            # Login GHCR SUR VPS
+            # => Utilise un token "deploy" dédié stocké en secret (lecture packages).
+            docker login ghcr.io -u romarich57 -p ${{ secrets.GHCR_DEPLOY_TOKEN }}
+
             docker compose --env-file ./apps/backend/.env.prod -f docker-compose.prod.yml pull
             docker compose --env-file ./apps/backend/.env.prod -f docker-compose.prod.yml up -d
-            sleep 5
+
+            sleep 8
+
+            # Healthcheck - adapte selon ton backend:
+            # Option 1 (recommandée): /health
             curl -f https://api-builder.romdev.cloud/health
+
+            # Option 2 si ton backend expose /api/health :
+            # curl -f https://api-builder.romdev.cloud/api/health

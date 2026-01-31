@@ -10,11 +10,11 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: romarich57
+  OWNER: ${{ github.repository_owner }}
   # Noms d’images STABLES et lowercase (indépendants du nom du repo)
-  BACKEND_IMAGE: ghcr.io/romarich57/saas-builder-backend
-  FRONTEND_IMAGE: ghcr.io/romarich57/saas-builder-frontend
-  ADMIN_IMAGE: ghcr.io/romarich57/saas-builder-admin
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/saas-builder-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/saas-builder-frontend
+  ADMIN_IMAGE: ghcr.io/${{ github.repository_owner }}/saas-builder-admin
 
 jobs:
   tests:
@@ -106,16 +106,25 @@ jobs:
   build_and_push:
     runs-on: ubuntu-latest
     needs: tests
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
       # Login GHCR avec le token GitHub natif (plus simple)
+      - name: Resolve GHCR token
+        run: echo "GHCR_PASSWORD=${GHCR_TOKEN:-${GITHUB_TOKEN}}" >> $GITHUB_ENV
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ env.GHCR_PASSWORD }}
 
       - uses: docker/setup-buildx-action@v3
 

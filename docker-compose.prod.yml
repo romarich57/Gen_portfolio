@@ -52,7 +52,7 @@ services:
       NODE_EXTRA_CA_CERTS: /etc/ssl/private/redis-ca.crt
       NODE_OPTIONS: --use-openssl-ca
     volumes:
-      - ./ops/redis/certs/redis.crt:/etc/ssl/private/redis-ca.crt:ro
+      - ./ops/redis/certs/redis-ca.crt:/etc/ssl/private/redis-ca.crt:ro
     depends_on:
       db:
         condition: service_healthy

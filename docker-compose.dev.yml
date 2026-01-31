@@ -5,7 +5,6 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:16-alpine
-    container_name: saas_builder_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -25,10 +24,9 @@ services:
   # Redis (rate limit store)
   redis:
     image: redis:7.4.1-alpine
-    container_name: saas_builder_redis
     command: [ "redis-server", "--save", "60", "1", "--loglevel", "warning" ]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -42,18 +40,17 @@ services:
   # MinIO S3-compatible storage
   minio:
     image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-    container_name: saas_builder_minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio-data:/data
     healthcheck:
-      test: [ "CMD", "mc", "ready", "local" ]
+      test: [ "CMD-SHELL", "wget -q --spider http://localhost:9000/minio/health/live || exit 1" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -76,17 +73,16 @@ services:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile.dev
-    container_name: saas_builder_backend
     environment:
       NODE_ENV: development
       PORT: 4100
       DATABASE_URL: postgresql://postgres:postgres@db:5432/saas_builder?schema=public
-      CORS_ORIGINS: https://localhost:3000,https://localhost:3002
-      APP_BASE_URL: https://localhost:3000
-      APP_URL: https://localhost:3000
-      OAUTH_REDIRECT_BASE_URL: https://localhost:4000
+      CORS_ORIGINS: ${DEV_CORS_ORIGINS:-https://localhost:3000,https://localhost:3002,http://localhost:3000,http://localhost:3002}
+      APP_BASE_URL: ${DEV_APP_BASE_URL:-https://localhost:3000}
+      APP_URL: ${DEV_APP_BASE_URL:-https://localhost:3000}
+      OAUTH_REDIRECT_BASE_URL: ${DEV_OAUTH_REDIRECT_BASE_URL:-https://localhost:4000}
       TRUST_PROXY: "1"
-      HTTPS_ENABLED: "true"
+      HTTPS_ENABLED: ${DEV_TLS_ENABLED:-true}
       HTTPS_CERT_PATH: /app/certs/localhost.crt
       HTTPS_KEY_PATH: /app/certs/localhost.key
       LOG_LEVEL: info
@@ -121,7 +117,7 @@ services:
       minio-init:
         condition: service_completed_successfully
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:4100/health" ]
+      test: [ "CMD-SHELL", "wget -q --spider --no-check-certificate ${BACKEND_HEALTH_URL:-https://localhost:4100/health} || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -133,10 +129,9 @@ services:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile.dev
-    container_name: saas_builder_frontend
     environment:
-      VITE_API_BASE_URL: https://localhost:4000
-      VITE_APP_BASE_URL: https://localhost:3000
+      VITE_API_BASE_URL: ${DEV_API_BASE_URL:-https://localhost:4000}
+      VITE_APP_BASE_URL: ${DEV_APP_BASE_URL:-https://localhost:3000}
     volumes:
       - ./apps/frontend/src:/app/src:ro
       - ./apps/frontend/index.html:/app/index.html:ro
@@ -155,10 +150,9 @@ services:
     build:
       context: ./frontends_admin
       dockerfile: Dockerfile.dev
-    container_name: saas_builder_frontend_admin
     environment:
-      VITE_ADMIN_API_BASE_URL: https://localhost:4000
-      VITE_MAIN_APP_URL: https://localhost:3000
+      VITE_ADMIN_API_BASE_URL: ${DEV_API_BASE_URL:-https://localhost:4000}
+      VITE_MAIN_APP_URL: ${DEV_APP_BASE_URL:-https://localhost:3000}
     volumes:
       - ./frontends_admin/src:/app/src:ro
       - ./frontends_admin/index.html:/app/index.html:ro
@@ -177,12 +171,12 @@ services:
     build:
       context: ./ops/nginx
       dockerfile: Dockerfile
-    container_name: saas_builder_nginx
     ports:
-      - "3000:3000"
-      - "3002:3002"
-      - "4000:4000"
+      - "${DEV_WEB_PORT:-3000}:3000"
+      - "${DEV_ADMIN_PORT:-3002}:3002"
+      - "${DEV_API_PORT:-4000}:4000"
     volumes:
+      - ${NGINX_DEV_CONF:-./ops/nginx/dev_https.conf}:/etc/nginx/nginx.conf:ro
       - ./ops/certs:/etc/nginx/certs:ro
     depends_on:
       frontend:

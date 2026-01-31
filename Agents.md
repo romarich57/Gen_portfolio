@@ -3,15 +3,18 @@
 ## 0) Objectif du repo
 Ce projet est un SaaS sécurisé "Enterprise-grade". Toute implémentation doit respecter les 15 piliers de sécurité (OWASP ASVS / OWASP Cheat Sheets / NIST AAL2) et produire des livrables vérifiables (tests, checklists, audit logs, politiques).
 
-Le backend est en **Node.js + Express** en **TypeScript (strict)**, ORM **Prisma**, DB **PostgreSQL**.
-Auth = **cookies HttpOnly** : Access JWT (15 min) + Refresh opaque **hashé en DB**, rotation + détection de réutilisation.
-Frontend = **React** en **TypeScript (strict)**.
-Email = **SMTP Gmail (App Password)**.
-Téléphone = **Twilio Verify**.
-MFA = **TOTP optionnelle par défaut**, administrable par l’admin (option globale + option par user).
+Le backend est en **Node.js + Express** en **TypeScript (strict)**, ORM **Prisma**, DB **PostgreSQL**.  
+Auth = **cookies HttpOnly** : Access JWT (15 min) + Refresh opaque **hashé en DB**, rotation + détection de réutilisation.  
+Frontend (user) = **React** en **TypeScript (strict)**.  
+Email = **SMTP Gmail (App Password)**.  
+Téléphone = **Twilio Verify**.  
+MFA = **TOTP optionnelle par défaut**, administrable par l’admin (option globale + option par user).  
 
-Billing = **Stripe** (abonnements mensuels, TVA via Stripe Tax, Customer Portal, attribution de rôles via webhook signé + idempotency).
-Object Storage = **OVH Object Storage S3-compatible** (bucket privé), uploads/downloads via **pre-signed URLs** (courtes), lifecycle purge.
+Billing = **Stripe** (abonnements mensuels, TVA via Stripe Tax, Customer Portal, attribution de rôles via webhook signé + idempotency).  
+Object Storage = **S3-compatible** :
+- Dev: **MinIO** (gratuit, docker, S3-compatible)
+- Prod: **OVH Object Storage S3-compatible**
+Uploads/downloads via **pre-signed URLs** (courtes) + lifecycle purge.
 
 ---
 
@@ -92,7 +95,7 @@ Pour chaque tâche, l’agent doit fournir :
   - Header **X-CSRF-Token** valide
 - Exception unique : endpoints **webhooks** (public) => CSRF non applicable, mais signature + idempotency obligatoires.
 
-### 3.3 Pre-signed URLs S3
+### 3.3 Pre-signed URLs S3 (MinIO dev / OVH prod)
 - Upload (PUT): 60–120 secondes
 - Download export ZIP (GET): 120 secondes (le plus court possible)
 - Bucket privé uniquement
@@ -132,13 +135,17 @@ L’agent doit toujours se baser sur les documents dans /implementations :
 - Feature 00 : Foundations sécurité (CI, headers, CORS, sessions, RBAC, audit, secrets, crypto, RGPD bases)
 - Feature 01 : Auth complète + email SMTP + Twilio Verify + MFA TOTP + OAuth Google/GitHub
 - Feature 02 : Billing Stripe (Subscriptions mensuelles + Stripe Tax + Customer Portal + Webhooks idempotents + Roles premium/vip + Quotas)
-- Feature 03 : Profil + Onboarding obligatoire + RGPD (export async + suppression J+7) + Avatars S3 (OVH) pre-signed URLs
-- Feature 04 : Frontend User React (Auth A→H + Pricing + Profile with onboarding intégré + Billing) — HTTPS dev via Nginx + CSRF token en mémoire
+- Feature 03 : Profil + RGPD (export async + suppression J+7) + Avatars S3 (MinIO dev / OVH prod) pre-signed URLs + purge
+- Feature 04 : Frontend User React (Auth A→H + Pricing + Profile onboarding intégré + Billing) — HTTPS dev via Nginx + CSRF token en mémoire
+- Feature 05 : Admin App séparée (React) + Admin API `/api/admin/*` + dashboard + users + plans/billing + logs + exports + settings
 
 IMPORTANT:
 - Tant que Feature 00 n’est pas validée, ne pas commencer Feature 01.
 - Tant que Feature 01 n’est pas validée, ne pas commencer Feature 02.
-- Toute déviation doit être justifiée dans /feedback (avec impacts sécurité).
+- Tant que Feature 02 n’est pas validée, ne pas commencer Feature 03.
+- Tant que Feature 03 n’est pas validée, ne pas commencer Feature 04.
+- Tant que Feature 04 n’est pas validée, ne pas commencer Feature 05.
+- Toute déviation doit être justifiée dans /feedback (avec impacts).
 
 ---
 
@@ -158,3 +165,61 @@ IMPORTANT:
 - /webhooks/stripe : pas de rate-limit bloquant côté app (risque de rater Stripe), mais Nginx/WAF + signature strict + idempotency
 
 ---
+
+## 7) Règles Storage S3 (Feature 03) — dev gratuit via MinIO
+### 7.1 Principe
+- En dev: MinIO (docker-compose) S3-compatible, bucket privé.
+- En prod: OVH Object Storage (S3-compatible), bucket privé.
+- Migration = switch de variables d’env (endpoint/keys/bucket), pas de changement de code.
+
+### 7.2 Interdits
+- Pas de stockage fichiers sensibles en public.
+- Pas d’URL publiques permanentes : uniquement pre-signed URLs courtes.
+- Pas de paths user-controlled (toujours des clés générées côté serveur).
+
+### 7.3 TTL des pre-signed URLs
+- PUT upload: 60–120s
+- GET export: 120s (le plus court possible)
+
+---
+
+## 8) Admin App & Admin API (Feature 05) — règles spécifiques
+### 8.1 Structure et emplacement
+- Admin App doit être créée dans `/frontends_admin` à la racine du repo backend.
+- Admin App consomme le backend via endpoints dédiés `/api/admin/*` (pas les endpoints user).
+
+### 8.2 URLs dev (obligatoires)
+- Admin App (dev): `https://localhost:3002`
+- Backend API (dev): `https://localhost:4000`
+En cas de mismatch dans le repo, l’agent doit:
+1) le signaler dans `/feedback/FEATURE05-backend-url-mismatch.md`
+2) proposer une correction via variables d’environnement (pas de bricolage).
+
+### 8.3 Auth admin (V1)
+- Même session cookies que user app (HttpOnly) + `credentials: "include"`.
+- Autorisé: `admin`, `super_admin` uniquement.
+- `modérateur` est prévu mais non implémenté en V1 (UI placeholder autorisée).
+- Interdiction de créer un login admin séparé.
+
+### 8.4 RGPD dans l’admin
+- Champs sensibles masqués par défaut.
+- Bouton “Afficher” => modal de confirmation explicite.
+- Révélation => audit log obligatoire.
+
+### 8.5 Stripe & plans (V1)
+- Stripe = source de vérité.
+- Changement de plan via admin => update Stripe subscription + update DB immédiat.
+- Coupons/promo via Stripe uniquement.
+
+### 8.6 Credits
+- V1: credits internes (ledger + balance), pas Stripe metered.
+- V2: credits metered Stripe (prévu seulement).
+
+### 8.7 Tests (V1)
+- Playwright E2E smoke + unit tests composants critiques obligatoires.
+- Seeds Prisma obligatoires: 1 super_admin, 1 admin, 3 users free/premium/vip.
+
+### 8.8 Documentation (V1)
+- `ADMIN_API_SPEC.md` + `openapi.admin.yaml`
+- `ADMIN_UI_GUIDE.md`
+- `frontends_admin/README.md`

@@ -2,12 +2,14 @@
 
 ## Objectif
 Activer HTTPS en local via Nginx pour:
-- Frontend: https://localhost:3000
+- Frontend user: https://localhost:3000
+- Admin App: https://localhost:3002
 - API: https://localhost:4000
 
 ## 1) Methode recommandee: Docker + Nginx (HTTPS termine par Nginx)
-Cette methode utilise `docker-compose.dev.yml` et expose:
-- Frontend: https://localhost:3000
+Celle-ci utilise `docker-compose.dev.yml` et expose:
+- Frontend user: https://localhost:3000
+- Admin App: https://localhost:3002
 - API: https://localhost:4000
 - MinIO: http://localhost:9001
 - Redis: localhost:6379
@@ -42,10 +44,16 @@ TRUST_PROXY=1
 HTTPS_ENABLED=true
 ```
 
-Frontend (`apps/frontend/.env`):
+Frontend user (`apps/frontend/.env`):
 ```
 VITE_API_BASE_URL=https://localhost:4000
 VITE_APP_BASE_URL=https://localhost:3000
+```
+
+Frontend admin (`frontends_admin/.env`):
+```
+VITE_ADMIN_API_BASE_URL=https://localhost:4000
+VITE_MAIN_APP_URL=https://localhost:3000
 ```
 
 ## 3) Methode alternative: Nginx local (hors Docker)
@@ -81,9 +89,16 @@ cd apps/backend
 PORT=4100 NODE_ENV=development npm run dev
 ```
 
-Frontend (Vite en http sur 5173):
+Frontend user (Vite en http sur 5173):
 ```bash
 cd apps/frontend
+npm install
+npm run dev
+```
+
+Frontend admin (Vite en http sur 5174):
+```bash
+cd frontends_admin
 npm install
 npm run dev
 ```

@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 36 33% 96%;
+  --foreground: 222 20% 16%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 20% 16%;
+  --border: 220 14% 90%;
+  --primary: 173 65% 32%;
+  --primary-foreground: 0 0% 98%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 204 80% 45%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+}
+
+.dark {
+  --background: 222 21% 10%;
+  --foreground: 210 20% 96%;
+  --card: 222 21% 14%;
+  --card-foreground: 210 20% 96%;
+  --border: 223 17% 25%;
+  --primary: 173 65% 42%;
+  --primary-foreground: 222 20% 12%;
+  --muted: 222 20% 18%;
+  --muted-foreground: 215 12% 60%;
+  --accent: 199 89% 60%;
+  --accent-foreground: 222 20% 12%;
+  --destructive: 0 70% 50%;
+  --destructive-foreground: 210 20% 96%;
+}
+
+body {
+  @apply bg-background text-foreground font-body;
+  perspective: 1000px;
+}
+
+* {
+  @apply border-border;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.glass-panel {
+  @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl;
+}
+
+.glass-card {
+  @apply bg-card/40 backdrop-blur-md border border-white/5 shadow-lg transition-all duration-300;
+  transform: translateZ(0);
+}
+
+.glass-card:hover {
+  transform: translateZ(20px) rotateX(2deg) rotateY(2deg);
+  @apply bg-card/60 border-white/20;
+}
+
+.three-d-shadow {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(15, 118, 110, 0.4);
+  border-radius: 999px;
+}
+
+/* 3D Button Effect */
+.btn-3d {
+  @apply relative transition-all duration-200 active:translate-y-1 active:shadow-inner;
+  box-shadow: 0 4px 0 hsl(var(--primary) / 0.3);
+}
+
+.btn-3d:active {
+  box-shadow: 0 0px 0 hsl(var(--primary) / 0.3);
+}

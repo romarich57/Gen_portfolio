@@ -162,6 +162,7 @@ model User {
   mfaRequiredOverride Boolean? @map("mfa_required_override")
   securityAlertEmailEnabled Boolean @default(false) @map("security_alert_email_enabled")
   securityAlertSmsEnabled Boolean @default(false) @map("security_alert_sms_enabled")
+  creditsBalance     Int      @default(0) @map("credits_balance")
   locale             String?
   deletedAt          DateTime? @map("deleted_at")
   createdAt          DateTime @default(now()) @map("created_at")
@@ -186,6 +187,7 @@ model User {
   gdprExports         GdprExport[]
   deletionRequests    DeletionRequest[]
   consents            Consent[]
+  creditsLedger       CreditsLedger[]
   avatarFile          File?    @relation("UserAvatar", fields: [avatarFileId], references: [id])
 
   @@map("users")
@@ -284,9 +286,12 @@ model Plan {
   code         PlanCode       @unique
   name         String
   currency     Currency
+  stripeProductId String?     @map("stripe_product_id")
   stripePriceId String?       @map("stripe_price_id")
   amountCents  Int            @map("amount_cents")
   interval     BillingInterval
+  projectLimit Int?           @map("project_limit")
+  creditsMonthly Int?         @map("credits_monthly")
   isActive     Boolean        @default(true) @map("is_active")
   features     Json?          @map("features_json")
   createdAt    DateTime       @default(now()) @map("created_at")
@@ -386,6 +391,20 @@ model RoleGrant {
 
   @@index([userId], name: "role_grants_user_id_idx")
   @@map("role_grants")
+}
+
+model CreditsLedger {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  delta            Int
+  reason           String
+  createdByAdminId String?  @map("created_by_admin_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "credits_ledger_user_id_idx")
+  @@map("credits_ledger")
 }
 
 model OAuthAccount {

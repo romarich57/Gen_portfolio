@@ -1,0 +1,454 @@
+openapi: 3.1.0
+info:
+  title: SaaS Builder Admin API
+  version: 0.1.0
+  description: Admin API for Feature 05.
+servers:
+  - url: https://localhost:4000
+paths:
+  /api/admin/me:
+    get:
+      summary: Admin identity
+      responses:
+        '200':
+          description: Admin info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminMe'
+  /api/admin/overview:
+    get:
+      summary: Overview stats
+      responses:
+        '200':
+          description: Overview payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Overview'
+  /api/admin/users:
+    get:
+      summary: List users
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [user, premium, vip, admin, super_admin]
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: created_from
+          schema: { type: string }
+        - in: query
+          name: created_to
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersResponse'
+  /api/admin/users/{id}:
+    get:
+      summary: User details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDetails'
+  /api/admin/users/{id}/reveal:
+    post:
+      summary: Reveal sensitive fields
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevealRequest'
+      responses:
+        '200':
+          description: Reveal payload
+  /api/admin/users/{id}/role:
+    patch:
+      summary: Update user role
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleRequest'
+      responses:
+        '200':
+          description: Role updated
+  /api/admin/users/{id}/status:
+    patch:
+      summary: Update user status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusRequest'
+      responses:
+        '200':
+          description: Status updated
+  /api/admin/users/{id}/password/reset:
+    post:
+      summary: Admin password reset
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200': { description: OK }
+  /api/admin/users/{id}/email/verify/force:
+    post:
+      summary: Force email verified
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/admin/users/{id}/email/verify/revoke:
+    post:
+      summary: Revoke email verified
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/admin/users/{id}/sessions/revoke:
+    post:
+      summary: Revoke sessions
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionsRevokeRequest'
+      responses:
+        '200': { description: OK }
+  /api/admin/users/{id}/gdpr/export:
+    post:
+      summary: Request GDPR export
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/admin/users/{id}/delete:
+    post:
+      summary: Soft delete user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/admin/users/{id}/purge:
+    post:
+      summary: Purge user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /api/admin/plans:
+    get:
+      summary: List plans
+      responses:
+        '200':
+          description: Plans list
+    post:
+      summary: Create plan (super admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanCreateRequest'
+      responses:
+        '201': { description: Created }
+  /api/admin/plans/{planId}:
+    patch:
+      summary: Update plan (super admin)
+      parameters:
+        - in: path
+          name: planId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanUpdateRequest'
+      responses:
+        '200': { description: OK }
+  /api/admin/stripe/coupons:
+    post:
+      summary: Create Stripe coupon (super admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CouponRequest'
+      responses:
+        '201': { description: Created }
+  /api/admin/users/{id}/subscription/change:
+    post:
+      summary: Change subscription plan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionChangeRequest'
+      responses:
+        '200': { description: OK }
+  /api/admin/users/{id}/credits:
+    get:
+      summary: Credits summary
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Credits summary
+  /api/admin/users/{id}/credits/adjust:
+    post:
+      summary: Adjust credits
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditsAdjustRequest'
+      responses:
+        '200': { description: OK }
+  /api/admin/audit:
+    get:
+      summary: Audit logs
+      parameters:
+        - in: query
+          name: userId
+          schema: { type: string }
+        - in: query
+          name: action_type
+          schema: { type: string }
+        - in: query
+          name: created_from
+          schema: { type: string }
+        - in: query
+          name: created_to
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200': { description: Audit list }
+  /api/admin/exports:
+    get:
+      summary: GDPR exports
+      parameters:
+        - in: query
+          name: userId
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string }
+        - in: query
+          name: created_from
+          schema: { type: string }
+        - in: query
+          name: created_to
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200': { description: Export list }
+
+components:
+  schemas:
+    AdminMe:
+      type: object
+      properties:
+        admin:
+          type: object
+          properties:
+            id: { type: string }
+            email_masked: { type: string, nullable: true }
+            role: { type: string }
+        ui:
+          type: object
+          properties:
+            lang: { type: string }
+    Overview:
+      type: object
+      properties:
+        totals:
+          type: object
+        timeseries:
+          type: object
+    UsersResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        nextCursor:
+          type: string
+          nullable: true
+    UserDetails:
+      type: object
+      properties:
+        id: { type: string }
+        profile: { type: object }
+        billing: { type: object }
+        sessions_count: { type: integer }
+        credits_balance: { type: integer }
+        flags: { type: object }
+    RevealRequest:
+      type: object
+      properties:
+        fields:
+          type: array
+          items: { type: string }
+        confirm: { type: string }
+    RoleRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, premium, vip, admin, super_admin]
+    StatusRequest:
+      type: object
+      properties:
+        status_action:
+          type: string
+          enum: [ban, unban, deactivate, reactivate]
+    PasswordResetRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [force_reset, send_link]
+    SessionsRevokeRequest:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [all, current]
+    PlanCreateRequest:
+      type: object
+      properties:
+        code: { type: string, enum: [FREE, PREMIUM, VIP] }
+        name_fr: { type: string }
+        price_eur_cents: { type: integer }
+        project_limit: { type: integer, nullable: true }
+        credits_monthly: { type: integer, nullable: true }
+        create_stripe: { type: boolean }
+    PlanUpdateRequest:
+      type: object
+      properties:
+        name_fr: { type: string }
+        price_eur_cents: { type: integer }
+        project_limit: { type: integer, nullable: true }
+        credits_monthly: { type: integer, nullable: true }
+        is_active: { type: boolean }
+        create_new_price: { type: boolean }
+    CouponRequest:
+      type: object
+      properties:
+        percent_off: { type: integer }
+        amount_off: { type: integer }
+        duration: { type: string }
+        code: { type: string }
+    SubscriptionChangeRequest:
+      type: object
+      properties:
+        plan_code:
+          type: string
+          enum: [FREE, PREMIUM, VIP]
+        proration:
+          type: boolean
+    CreditsAdjustRequest:
+      type: object
+      properties:
+        delta: { type: integer }
+        reason: { type: string }

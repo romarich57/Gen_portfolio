@@ -15,6 +15,7 @@ import { authRouter } from './routes/auth';
 import { protectedRouter } from './routes/protected';
 import { testRouter } from './routes/test';
 import { adminRouter } from './routes/admin';
+import { adminApiRouter } from './routes/adminApi';
 import { billingRouter } from './routes/billing';
 import { webhookRouter } from './routes/webhooks';
 import { meRouter } from './routes/me';
@@ -42,6 +43,7 @@ app.use(csrfProtection);
 
 app.use('/health', healthRouter);
 app.use('/auth', authRouter);
+app.use('/api/admin', adminApiRouter);
 app.use(onboardingGate);
 app.use('/me', meRouter);
 app.use('/protected', protectedRouter);

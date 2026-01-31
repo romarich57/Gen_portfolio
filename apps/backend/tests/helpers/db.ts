@@ -31,7 +31,8 @@ const TABLES = [
   'payments',
   'subscriptions',
   'stripe_customers',
-  'plans'
+  'plans',
+  'credits_ledger'
 ];
 
 before(async () => {

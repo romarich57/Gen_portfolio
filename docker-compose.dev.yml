@@ -81,7 +81,7 @@ services:
       NODE_ENV: development
       PORT: 4100
       DATABASE_URL: postgresql://postgres:postgres@db:5432/saas_builder?schema=public
-      CORS_ORIGINS: https://localhost:3000
+      CORS_ORIGINS: https://localhost:3000,https://localhost:3002
       APP_BASE_URL: https://localhost:3000
       APP_URL: https://localhost:3000
       OAUTH_REDIRECT_BASE_URL: https://localhost:4000
@@ -150,6 +150,28 @@ services:
     networks:
       - saas-dev-net
 
+  # Admin Frontend (Vite dev server)
+  frontend_admin:
+    build:
+      context: ./frontends_admin
+      dockerfile: Dockerfile.dev
+    container_name: saas_builder_frontend_admin
+    environment:
+      VITE_ADMIN_API_BASE_URL: https://localhost:4000
+      VITE_MAIN_APP_URL: https://localhost:3000
+    volumes:
+      - ./frontends_admin/src:/app/src:ro
+      - ./frontends_admin/index.html:/app/index.html:ro
+    depends_on:
+      - backend
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:5174" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-dev-net
+
   # Nginx reverse proxy with SSL
   nginx:
     build:
@@ -158,11 +180,14 @@ services:
     container_name: saas_builder_nginx
     ports:
       - "3000:3000"
+      - "3002:3002"
       - "4000:4000"
     volumes:
       - ./ops/certs:/etc/nginx/certs:ro
     depends_on:
       frontend:
+        condition: service_healthy
+      frontend_admin:
         condition: service_healthy
       backend:
         condition: service_healthy

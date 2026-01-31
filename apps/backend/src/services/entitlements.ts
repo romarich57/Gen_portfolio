@@ -4,7 +4,7 @@ import type { PrismaClient, Prisma } from '@prisma/client';
 
 type DbClient = Prisma.TransactionClient | PrismaClient;
 
-const PLAN_LIMITS: Record<PlanCode, number | null> = {
+const DEFAULT_PLAN_LIMITS: Record<PlanCode, number | null> = {
   FREE: 1,
   PREMIUM: 5,
   VIP: null
@@ -17,7 +17,8 @@ export async function applyEntitlements(params: {
   periodEnd: Date;
 }, db?: DbClient) {
   const client = db ?? prisma;
-  const limit = PLAN_LIMITS[params.planCode];
+  const plan = await client.plan.findFirst({ where: { code: params.planCode } });
+  const limit = plan?.projectLimit ?? DEFAULT_PLAN_LIMITS[params.planCode];
   const existing = await client.entitlement.findUnique({ where: { userId: params.userId } });
   const periodChanged =
     !existing ||

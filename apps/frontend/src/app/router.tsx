@@ -19,6 +19,7 @@ import Dashboard from '@/pages/private/Dashboard';
 import Profile from '@/pages/private/Profile';
 import Sessions from '@/pages/private/Sessions';
 import Billing from '@/pages/private/Billing';
+import BillingSuccess from '@/pages/private/BillingSuccess';
 import PhoneVerify from '@/pages/private/PhoneVerify';
 import MfaSetup from '@/pages/private/MfaSetup';
 import MfaChallenge from '@/pages/private/MfaChallenge';
@@ -68,6 +69,7 @@ const router = createBrowserRouter([
       { path: 'verify-phone', element: <PhoneVerify /> },
       { path: 'setup-mfa', element: <MfaSetup /> },
       { path: 'billing', element: <Billing /> },
+      { path: 'billing/success', element: <BillingSuccess /> },
       { path: 'admin/status', element: <ServiceStatus /> }
     ]
   },

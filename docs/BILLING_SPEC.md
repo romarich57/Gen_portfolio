@@ -35,6 +35,11 @@ Retour: `plan_code`, `status`, `period_start`, `period_end`, `cancel_at_period_e
 - Cancel: accès conservé jusqu’à `current_period_end` (Stripe).
 - Expiry: via `customer.subscription.deleted` => FREE + rôles révoqués.
 
+## Configuration Stripe (obligatoire)
+- Les plans PREMIUM/VIP doivent avoir un `stripe_price_id` valide.
+- En dev, vous pouvez définir `STRIPE_PRICE_ID_PREMIUM` / `STRIPE_PRICE_ID_VIP` (et optionnellement `STRIPE_PRODUCT_ID_*`) puis relancer l’API.
+- En prod, utilisez l’Admin App pour créer/mettre à jour les plans et leurs prix Stripe.
+
 ## Mapping rôles & quotas
 - FREE → limit=1 projet/mois
 - PREMIUM → role `premium`, limit=5

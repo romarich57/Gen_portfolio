@@ -66,14 +66,14 @@ async function handleCheckoutCompleted(event: Stripe.Event, db: DbClient) {
   if (!userId || !planCode || currency !== Currency.EUR) {
     await writeAuditLog(
       {
-      actorUserId: null,
-      actorIp: null,
-      action: 'BILLING_WEBHOOK_MISMATCH',
-      targetType: 'stripe_event',
-      targetId: event.id,
-      metadata: { reason: 'MISSING_METADATA' },
-      requestId: null
-    },
+        actorUserId: null,
+        actorIp: null,
+        action: 'BILLING_WEBHOOK_MISMATCH',
+        targetType: 'stripe_event',
+        targetId: event.id,
+        metadata: { reason: 'MISSING_METADATA' },
+        requestId: null
+      },
       db
     );
     return { status: 'failed' as const, errorMessage: 'MISSING_METADATA' };
@@ -119,14 +119,14 @@ async function handleInvoicePaid(event: Stripe.Event, db: DbClient) {
   if (invoice.currency?.toUpperCase() !== Currency.EUR) {
     await writeAuditLog(
       {
-      actorUserId: null,
-      actorIp: null,
-      action: 'BILLING_WEBHOOK_MISMATCH',
-      targetType: 'stripe_event',
-      targetId: event.id,
-      metadata: { reason: 'CURRENCY_MISMATCH' },
-      requestId: null
-    },
+        actorUserId: null,
+        actorIp: null,
+        action: 'BILLING_WEBHOOK_MISMATCH',
+        targetType: 'stripe_event',
+        targetId: event.id,
+        metadata: { reason: 'CURRENCY_MISMATCH' },
+        requestId: null
+      },
       db
     );
     return { status: 'failed' as const, errorMessage: 'CURRENCY_MISMATCH' };
@@ -159,14 +159,14 @@ async function handleInvoicePaid(event: Stripe.Event, db: DbClient) {
   if (!plan || plan.currency !== Currency.EUR) {
     await writeAuditLog(
       {
-      actorUserId: customer.userId,
-      actorIp: null,
-      action: 'BILLING_WEBHOOK_MISMATCH',
-      targetType: 'stripe_event',
-      targetId: event.id,
-      metadata: { reason: 'PRICE_MISMATCH', price_id: priceId },
-      requestId: null
-    },
+        actorUserId: customer.userId,
+        actorIp: null,
+        action: 'BILLING_WEBHOOK_MISMATCH',
+        targetType: 'stripe_event',
+        targetId: event.id,
+        metadata: { reason: 'PRICE_MISMATCH', price_id: priceId },
+        requestId: null
+      },
       db
     );
     return { status: 'failed' as const, errorMessage: 'PRICE_MISMATCH' };
@@ -339,14 +339,14 @@ async function handleSubscriptionUpdated(event: Stripe.Event, db: DbClient) {
   if (subscription.items.data[0]?.price?.currency?.toUpperCase() !== Currency.EUR) {
     await writeAuditLog(
       {
-      actorUserId: customer.userId,
-      actorIp: null,
-      action: 'BILLING_WEBHOOK_MISMATCH',
-      targetType: 'stripe_event',
-      targetId: event.id,
-      metadata: { reason: 'CURRENCY_MISMATCH' },
-      requestId: null
-    },
+        actorUserId: customer.userId,
+        actorIp: null,
+        action: 'BILLING_WEBHOOK_MISMATCH',
+        targetType: 'stripe_event',
+        targetId: event.id,
+        metadata: { reason: 'CURRENCY_MISMATCH' },
+        requestId: null
+      },
       db
     );
     return { status: 'failed' as const, errorMessage: 'CURRENCY_MISMATCH' };
@@ -356,14 +356,14 @@ async function handleSubscriptionUpdated(event: Stripe.Event, db: DbClient) {
   if (!plan) {
     await writeAuditLog(
       {
-      actorUserId: customer.userId,
-      actorIp: null,
-      action: 'BILLING_WEBHOOK_MISMATCH',
-      targetType: 'stripe_event',
-      targetId: event.id,
-      metadata: { reason: 'PRICE_MISMATCH', price_id: priceId },
-      requestId: null
-    },
+        actorUserId: customer.userId,
+        actorIp: null,
+        action: 'BILLING_WEBHOOK_MISMATCH',
+        targetType: 'stripe_event',
+        targetId: event.id,
+        metadata: { reason: 'PRICE_MISMATCH', price_id: priceId },
+        requestId: null
+      },
       db
     );
     return { status: 'failed' as const, errorMessage: 'PRICE_MISMATCH' };
@@ -384,6 +384,18 @@ async function handleSubscriptionUpdated(event: Stripe.Event, db: DbClient) {
     db
   );
 
+
+  const { roleChanges } = await applyRolesAndEntitlements(
+    {
+      userId: customer.userId,
+      planCode: plan.code,
+      periodStart: new Date(subscription.current_period_start * 1000),
+      periodEnd: new Date(subscription.current_period_end * 1000),
+      reason: 'subscription.updated'
+    },
+    db
+  );
+
   await writeAuditLog(
     {
       actorUserId: customer.userId,
@@ -396,6 +408,35 @@ async function handleSubscriptionUpdated(event: Stripe.Event, db: DbClient) {
     },
     db
   );
+
+  for (const role of roleChanges.granted) {
+    await writeAuditLog(
+      {
+        actorUserId: customer.userId,
+        actorIp: null,
+        action: 'BILLING_ROLE_GRANTED',
+        targetType: 'role',
+        targetId: role,
+        metadata: { plan_code: plan.code },
+        requestId: null
+      },
+      db
+    );
+  }
+  for (const role of roleChanges.revoked) {
+    await writeAuditLog(
+      {
+        actorUserId: customer.userId,
+        actorIp: null,
+        action: 'BILLING_ROLE_REVOKED',
+        targetType: 'role',
+        targetId: role,
+        metadata: { plan_code: plan.code },
+        requestId: null
+      },
+      db
+    );
+  }
 
   return { status: 'processed' as const };
 }

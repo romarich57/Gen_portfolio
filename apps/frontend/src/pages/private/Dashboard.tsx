@@ -4,6 +4,11 @@ import { Card, CardContent } from '@/components/ui/Card';
 
 function Dashboard() {
   const { user } = useAuth();
+  const roleLabel = user?.roles?.includes('vip')
+    ? 'VIP'
+    : user?.roles?.includes('premium')
+      ? 'PREMIUM'
+      : 'USER';
 
   return (
     <div className="space-y-12 animate-fadeUp">
@@ -14,6 +19,9 @@ function Dashboard() {
           </h1>
           <p className="text-sm text-muted-foreground font-mono uppercase tracking-widest leading-relaxed">
             Bienvenue, {user?.username ?? user?.email ?? 'Architecte'}. Système prêt pour génération.
+          </p>
+          <p className="text-xs text-emerald-300 font-mono uppercase tracking-widest">
+            Vous êtes actuellement {roleLabel}.
           </p>
         </div>
 

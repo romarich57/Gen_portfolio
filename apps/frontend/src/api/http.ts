@@ -8,6 +8,7 @@ export type ApiError = {
   status: number;
   fields?: string[];
   issues?: { field: string; message: string }[];
+  debug?: Record<string, unknown>;
 };
 
 export type ApiRequestOptions = RequestInit & {
@@ -61,6 +62,10 @@ function normalizeError(status: number, payload: unknown): ApiError {
     }
     if (Array.isArray(issues)) {
       error.issues = issues;
+    }
+    const debug = (payload as { debug?: Record<string, unknown> }).debug;
+    if (debug && typeof debug === 'object') {
+      error.debug = debug;
     }
     return error;
   }

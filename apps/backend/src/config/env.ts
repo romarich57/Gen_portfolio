@@ -40,6 +40,10 @@ type EnvConfig = {
   stripeWebhookSecret: string;
   stripeTaxEnabled: boolean;
   stripeCustomerPortalConfigurationId: string | null;
+  stripePriceIdPremium: string | null;
+  stripePriceIdVip: string | null;
+  stripeProductIdPremium: string | null;
+  stripeProductIdVip: string | null;
   s3Endpoint: string;
   s3Region: string;
   s3AccessKeyId: string;
@@ -284,6 +288,10 @@ function loadEnv(): EnvConfig {
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
     stripeTaxEnabled: process.env.STRIPE_TAX_ENABLED === 'true',
     stripeCustomerPortalConfigurationId: process.env.STRIPE_CUSTOMER_PORTAL_CONFIGURATION_ID || null,
+    stripePriceIdPremium: process.env.STRIPE_PRICE_ID_PREMIUM?.trim() || null,
+    stripePriceIdVip: process.env.STRIPE_PRICE_ID_VIP?.trim() || null,
+    stripeProductIdPremium: process.env.STRIPE_PRODUCT_ID_PREMIUM?.trim() || null,
+    stripeProductIdVip: process.env.STRIPE_PRODUCT_ID_VIP?.trim() || null,
     s3Endpoint: process.env.S3_ENDPOINT!,
     s3Region: process.env.S3_REGION!,
     s3AccessKeyId: process.env.S3_ACCESS_KEY_ID!,

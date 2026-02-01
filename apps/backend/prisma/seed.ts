@@ -1,5 +1,8 @@
+import dotenv from 'dotenv';
 import { PrismaClient, PlanCode, Currency, BillingInterval, UserStatus } from '@prisma/client';
 import { hashPassword } from '../src/utils/password';
+
+dotenv.config();
 
 const prisma = new PrismaClient();
 
@@ -9,9 +12,25 @@ async function ensurePlan(params: {
   amountCents: number;
   projectLimit: number | null;
   creditsMonthly: number | null;
+  stripePriceId?: string | null;
+  stripeProductId?: string | null;
 }) {
   const existing = await prisma.plan.findFirst({ where: { code: params.code } });
-  if (existing) return existing;
+  if (existing) {
+    // Update existing plan with Stripe IDs if provided
+    if (params.stripePriceId || params.stripeProductId) {
+      return prisma.plan.update({
+        where: { id: existing.id },
+        data: {
+          stripePriceId: params.stripePriceId ?? existing.stripePriceId,
+          stripeProductId: params.stripeProductId ?? existing.stripeProductId,
+          amountCents: params.amountCents,
+          isActive: true
+        }
+      });
+    }
+    return existing;
+  }
   return prisma.plan.create({
     data: {
       code: params.code,
@@ -21,6 +40,8 @@ async function ensurePlan(params: {
       interval: BillingInterval.month,
       projectLimit: params.projectLimit,
       creditsMonthly: params.creditsMonthly,
+      stripePriceId: params.stripePriceId ?? null,
+      stripeProductId: params.stripeProductId ?? null,
       isActive: true
     }
   });
@@ -28,8 +49,24 @@ async function ensurePlan(params: {
 
 async function main() {
   await ensurePlan({ code: PlanCode.FREE, name: 'Gratuit', amountCents: 0, projectLimit: 1, creditsMonthly: 50 });
-  await ensurePlan({ code: PlanCode.PREMIUM, name: 'Premium', amountCents: 1000, projectLimit: 5, creditsMonthly: 200 });
-  await ensurePlan({ code: PlanCode.VIP, name: 'VIP', amountCents: 3000, projectLimit: null, creditsMonthly: 999 });
+  await ensurePlan({
+    code: PlanCode.PREMIUM,
+    name: 'Premium',
+    amountCents: 1000,
+    projectLimit: 5,
+    creditsMonthly: 200,
+    stripePriceId: process.env.STRIPE_PRICE_ID_PREMIUM ?? null,
+    stripeProductId: process.env.STRIPE_PRODUCT_ID_PREMIUM ?? null
+  });
+  await ensurePlan({
+    code: PlanCode.VIP,
+    name: 'VIP',
+    amountCents: 3000,
+    projectLimit: null,
+    creditsMonthly: 999,
+    stripePriceId: process.env.STRIPE_PRICE_ID_VIP ?? null,
+    stripeProductId: process.env.STRIPE_PRODUCT_ID_VIP ?? null
+  });
 
   const adminPassword = await hashPassword('AdminStrongPassw0rd!');
 

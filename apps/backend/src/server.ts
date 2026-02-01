@@ -6,6 +6,7 @@ import { logger } from './middleware/logger';
 import { prisma } from './db/prisma';
 import { startServiceStatusCron } from './services/serviceStatus';
 import { startSecurityTokenCleanupCron } from './services/securityTokens';
+import { syncStripePlanOverridesFromEnv } from './services/billing';
 
 let stopServiceStatusCron: (() => void) | null = null;
 let stopSecurityTokenCleanupCron: (() => void) | null = null;
@@ -13,6 +14,7 @@ let stopSecurityTokenCleanupCron: (() => void) | null = null;
 async function start(): Promise<void> {
   try {
     await prisma.$connect();
+    await syncStripePlanOverridesFromEnv();
 
     if (env.httpsEnabled && env.httpsCertPath && env.httpsKeyPath) {
       const options = {

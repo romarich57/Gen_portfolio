@@ -316,6 +316,7 @@ model Subscription {
   id                  String             @id @default(cuid())
   userId              String             @map("user_id")
   planCode            PlanCode           @map("plan_code")
+  scheduledPlanCode   PlanCode?          @map("scheduled_plan_code")
   status              SubscriptionStatus
   currency            Currency
   stripeSubscriptionId String?           @unique @map("stripe_subscription_id")

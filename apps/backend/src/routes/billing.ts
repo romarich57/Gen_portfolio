@@ -6,8 +6,9 @@ import { requireAuth, requirePermission } from '../middleware/rbac';
 import { buildRateLimiter } from '../middleware/rateLimit';
 import { prisma } from '../db/prisma';
 import { env } from '../config/env';
+import { logger } from '../middleware/logger';
 import { writeAuditLog } from '../services/audit';
-import { createCheckoutSession, createPortalSession, getBillingStatus, getPlans } from '../services/billing';
+import { CheckoutError, createCheckoutSession, createPortalSession, getBillingStatus, getPlans, changePlan, syncCheckoutSession } from '../services/billing';
 import { countRecentFailures, recordAuthAttempt } from '../services/authAttempts';
 import { verifyCaptchaToken } from '../services/captcha';
 import { AuthAttemptType } from '@prisma/client';
@@ -38,6 +39,10 @@ const portalLimiter = buildRateLimiter({
 const checkoutSchema = z.object({
   planCode: z.enum(['FREE', 'PREMIUM', 'VIP']),
   captchaToken: z.string().optional()
+});
+
+const syncSchema = z.object({
+  sessionId: z.string().min(8)
 });
 
 async function enforceCheckoutCaptcha(params: { email: string; ip?: string | null; captchaToken?: string }) {
@@ -141,7 +146,112 @@ router.post(
         success: false,
         userId
       });
-      res.status(400).json({ error: 'PLAN_INVALID', request_id: req.id });
+      const errorMessage = error instanceof Error ? error.message : 'CHECKOUT_FAILED';
+      const allowedErrors = new Set([
+        'PLAN_INVALID',
+        'PLAN_NOT_CONFIGURED',
+        'STRIPE_TAX_NOT_ENABLED',
+        'STRIPE_ADDRESS_REQUIRED',
+        'STRIPE_ERROR',
+        'CHECKOUT_URL_MISSING'
+      ]);
+      const errorCode = allowedErrors.has(errorMessage) ? errorMessage : 'CHECKOUT_FAILED';
+      const debug =
+        !env.isProduction && error instanceof CheckoutError && error.details
+          ? {
+            ...error.details
+          }
+          : undefined;
+      logger.warn(
+        {
+          error: errorMessage,
+          userId,
+          requestId: req.id,
+          ...(debug ? { debug } : {})
+        },
+        'Billing checkout failed'
+      );
+      res.status(400).json({ error: errorCode, request_id: req.id, ...(debug ? { debug } : {}) });
+    }
+  }
+);
+
+router.post(
+  '/change-plan',
+  requireAuth,
+  requirePermission('billing:checkout'),
+  checkoutIpLimiter,
+  checkoutUserLimiter,
+  async (req, res) => {
+    const parseResult = checkoutSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
+      return;
+    }
+
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ error: 'AUTH_REQUIRED', request_id: req.id });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ error: 'NOT_FOUND', request_id: req.id });
+      return;
+    }
+
+    // Reuse existing captcha logic if necessary, or simplify for logged-in users
+    // Assuming logged-in users performing an action might still need security checks
+
+    try {
+      const result = await changePlan({
+        userId,
+        userEmail: user.email,
+        targetPlanCode: parseResult.data.planCode
+      });
+
+      await writeAuditLog({
+        actorUserId: userId,
+        actorIp: req.ip ?? null,
+        action: 'BILLING_PLAN_CHANGE',
+        targetType: 'subscription',
+        targetId: result.changeType,
+        metadata: {
+          target_plan: parseResult.data.planCode,
+          change_type: result.changeType
+        },
+        requestId: req.id
+      });
+
+      res.json({ ...result, request_id: req.id });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'CHECKOUT_FAILED';
+      // Reuse similar error mapping logic could be extracted to a helper
+      const allowedErrors = new Set([
+        'PLAN_INVALID',
+        'PLAN_NOT_CONFIGURED',
+        'SUBSCRIPTION_INVALID',
+        'STRIPE_ERROR',
+        'CHECKOUT_FAILED'
+      ]);
+      const errorCode = allowedErrors.has(errorMessage) ? errorMessage : 'CHECKOUT_FAILED';
+
+      const debug =
+        !env.isProduction && error instanceof CheckoutError && error.details
+          ? { ...error.details }
+          : undefined;
+
+      logger.warn(
+        {
+          error: errorMessage,
+          userId,
+          requestId: req.id,
+          ...(debug ? { debug } : {})
+        },
+        'Billing plan change failed'
+      );
+      res.status(400).json({ error: errorCode, request_id: req.id, ...(debug ? { debug } : {}) });
     }
   }
 );
@@ -182,6 +292,59 @@ router.get('/status', requireAuth, requirePermission('billing:read'), async (req
 
   const status = await getBillingStatus(userId);
   res.json({ ...status, request_id: req.id });
+});
+
+router.post('/sync-session', requireAuth, requirePermission('billing:read'), async (req, res) => {
+  const parseResult = syncSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
+    return;
+  }
+
+  const userId = req.user?.id;
+  if (!userId) {
+    res.status(401).json({ error: 'AUTH_REQUIRED', request_id: req.id });
+    return;
+  }
+
+  try {
+    const result = await syncCheckoutSession({ sessionId: parseResult.data.sessionId, userId });
+    await writeAuditLog({
+      actorUserId: userId,
+      actorIp: req.ip ?? null,
+      action: 'BILLING_SYNC',
+      targetType: 'subscription',
+      targetId: parseResult.data.sessionId,
+      metadata: { plan_code: (result as { plan_code?: string }).plan_code },
+      requestId: req.id
+    });
+    res.json({ ...result, request_id: req.id });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'CHECKOUT_FAILED';
+    const allowedErrors = new Set([
+      'SESSION_INVALID',
+      'CHECKOUT_FORBIDDEN',
+      'SUBSCRIPTION_INVALID',
+      'PLAN_NOT_CONFIGURED',
+      'STRIPE_ERROR',
+      'CHECKOUT_FAILED'
+    ]);
+    const errorCode = allowedErrors.has(errorMessage) ? errorMessage : 'CHECKOUT_FAILED';
+    const debug =
+      !env.isProduction && error instanceof CheckoutError && error.details
+        ? { ...error.details }
+        : undefined;
+    logger.warn(
+      {
+        error: errorMessage,
+        userId,
+        requestId: req.id,
+        ...(debug ? { debug } : {})
+      },
+      'Billing sync failed'
+    );
+    res.status(400).json({ error: errorCode, request_id: req.id, ...(debug ? { debug } : {}) });
+  }
 });
 
 export { router as billingRouter };

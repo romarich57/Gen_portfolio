@@ -57,6 +57,7 @@ export type OnboardingStatus = {
 
 export type BillingStatus = {
   plan_code: 'FREE' | 'PREMIUM' | 'VIP';
+  scheduled_plan_code?: 'FREE' | 'PREMIUM' | 'VIP' | null;
   status: string | null;
   period_start: string | null;
   period_end: string | null;

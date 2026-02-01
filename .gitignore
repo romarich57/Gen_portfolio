@@ -17,3 +17,7 @@ apps/backend/certs/
 test-results/
 playwright-report/
 blob-report/
+
+# Secrets
+gh_actions_deploy
+gh_actions_deploy.pub

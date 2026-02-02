@@ -178,7 +178,7 @@ function Billing() {
   const entitlements = billingStatus.entitlements;
   const projectsLimit = entitlements?.projects_limit;
 
-  const getButtonState = (optionCode: 'PREMIUM' | 'VIP') => {
+  const getButtonState = (optionCode: 'PREMIUM' | 'VIP'): { label: string; disabled: boolean; variant?: 'primary' | 'outline' } => {
     const currentLevel = PLAN_LEVELS[planLabel];
     const optionLevel = PLAN_LEVELS[optionCode];
 
@@ -193,7 +193,7 @@ function Billing() {
     }
 
     if (optionLevel > currentLevel) {
-      return { label: `Passer à ${PLAN_LABELS[optionCode]}`, disabled: false, variant: 'default' };
+      return { label: `Passer à ${PLAN_LABELS[optionCode]}`, disabled: false, variant: 'primary' };
     } else {
       return { label: 'Rétrograder', disabled: false, variant: 'outline' };
     }
@@ -268,7 +268,7 @@ function Billing() {
               </CardContent>
               <CardFooter>
                 <Button
-                  variant={variant as any || 'default'}
+                  variant={variant ?? 'primary'}
                   className="w-full rounded-none font-mono text-[10px] tracking-widest h-10 uppercase transition-all"
                   onClick={() => {
                     const currentLevel = PLAN_LEVELS[planLabel];

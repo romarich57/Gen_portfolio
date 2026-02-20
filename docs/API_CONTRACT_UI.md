@@ -14,6 +14,8 @@
   - Body: `{ email, password, firstName, lastName, username, nationality, captchaToken? }`
 - POST /auth/email/resend
 - GET /auth/email/verify?token=
+- POST /auth/email/verify
+  - Body: `{ confirmation_token }`
 - POST /auth/login
   - Body: `{ identifier, password }` (identifier = email ou username)
   - 200 `{ ok: true }` or 200 `{ error: "MFA_CHALLENGE_REQUIRED" }` (si MFA activée)
@@ -34,8 +36,17 @@
   - Redirects to `/oauth/callback?next=complete-profile|mfa-challenge|setup-mfa|dashboard`
   - On error: `/oauth/callback?status=error`
 - GET /auth/recovery-email/verify?token=
+- POST /auth/recovery-email/verify
+  - Body: `{ confirmation_token }`
 - GET /auth/security/revoke-sessions?token=
+- POST /auth/security/revoke-sessions
+  - Body: `{ confirmation_token }`
 - GET /auth/security/acknowledge-alert?token=
+- POST /auth/security/acknowledge-alert
+  - Body: `{ confirmation_token }`
+- GET /auth/email/change/verify?token=
+- POST /auth/email/change/verify
+  - Body: `{ confirmation_token }`
 
 ## /me
 - GET /me

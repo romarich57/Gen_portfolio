@@ -1,6 +1,6 @@
 import { prisma } from '../db/prisma';
 import { hashToken } from '../utils/crypto';
-import { ConsentSource } from '@prisma/client';
+import type { ConsentSource } from '@prisma/client';
 
 export async function recordConsent(params: {
   userId: string;

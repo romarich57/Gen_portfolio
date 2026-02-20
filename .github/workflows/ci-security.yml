@@ -20,6 +20,9 @@ jobs:
           cache: "npm"
           cache-dependency-path: apps/backend/package-lock.json
 
+      - name: Enforce pinned dependency versions
+        run: npm run deps:check-pinned
+
       - name: Install backend dependencies
         working-directory: apps/backend
         run: npm ci

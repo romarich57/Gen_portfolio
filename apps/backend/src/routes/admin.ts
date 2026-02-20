@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { prisma } from '../db/prisma';
+import { adminRepository } from '../domains/admin/admin.repository';
 import { requireAuth, requireRole } from '../middleware/rbac';
 import { writeAuditLog } from '../services/audit';
 import { refreshServiceStatus, getServiceStatusHistory } from '../services/serviceStatus';
@@ -24,11 +24,13 @@ const mfaFlagsSchema = z
 const otpRateLimitsSchema = z.object({
   phoneStart: z.object({
     windowMs: z.number().int().min(1_000).max(60 * 60 * 1000),
-    limit: z.number().int().min(1).max(1000)
+    limit: z.number().int().min(1).max(1000),
+    targetLimit: z.number().int().min(1).max(1000)
   }),
   phoneCheck: z.object({
     windowMs: z.number().int().min(1_000).max(60 * 60 * 1000),
     limit: z.number().int().min(1).max(1000),
+    targetLimit: z.number().int().min(1).max(1000),
     maxAttempts: z.number().int().min(1).max(20)
   })
 });
@@ -38,7 +40,7 @@ const mfaOverrideSchema = z.object({
 });
 
 async function upsertFlag(key: string, value: boolean) {
-  return prisma.featureFlag.upsert({
+  return adminRepository.featureFlag.upsert({
     where: { key },
     update: { valueBoolean: value },
     create: { key, valueBoolean: value }
@@ -47,8 +49,8 @@ async function upsertFlag(key: string, value: boolean) {
 
 router.get('/security/mfa-flags', async (req, res) => {
   const [globalFlag, allowDisableFlag] = await Promise.all([
-    prisma.featureFlag.findUnique({ where: { key: 'mfa_required_global' } }),
-    prisma.featureFlag.findUnique({ where: { key: 'allow_disable_mfa' } })
+    adminRepository.featureFlag.findUnique({ where: { key: 'mfa_required_global' } }),
+    adminRepository.featureFlag.findUnique({ where: { key: 'allow_disable_mfa' } })
   ]);
 
   res.json({
@@ -105,7 +107,7 @@ router.put('/security/otp-rate-limits', async (req, res) => {
     return;
   }
 
-  await prisma.appSetting.upsert({
+  await adminRepository.appSetting.upsert({
     where: { key: 'otp_rate_limits' },
     update: { valueJson: parseResult.data },
     create: { key: 'otp_rate_limits', valueJson: parseResult.data }
@@ -132,13 +134,13 @@ router.patch('/users/:id/mfa-override', async (req, res) => {
     return;
   }
 
-  const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+  const user = await adminRepository.user.findUnique({ where: { id: req.params.id } });
   if (!user) {
     res.status(404).json({ error: 'NOT_FOUND', request_id: req.id });
     return;
   }
 
-  await prisma.user.update({
+  await adminRepository.user.update({
     where: { id: user.id },
     data: { mfaRequiredOverride: parseResult.data.required }
   });
@@ -166,7 +168,10 @@ router.get('/status/services', async (req, res) => {
         request_id: req.id,
         smtp_ok: snapshot.services.smtp.ok,
         s3_ok: snapshot.services.s3.ok,
-        redis_ok: snapshot.services.redis.ok
+        redis_ok: snapshot.services.redis.ok,
+        queue_ok: snapshot.services.queue.ok,
+        queue_queued_overdue: snapshot.services.queue.queuedOverdue,
+        queue_running_stale: snapshot.services.queue.runningStale
       },
       'Service status check failed'
     );
@@ -181,7 +186,10 @@ router.get('/status/services', async (req, res) => {
     metadata: {
       smtp_ok: snapshot.services.smtp.ok,
       s3_ok: snapshot.services.s3.ok,
-      redis_ok: snapshot.services.redis.ok
+      redis_ok: snapshot.services.redis.ok,
+      queue_ok: snapshot.services.queue.ok,
+      queue_queued_overdue: snapshot.services.queue.queuedOverdue,
+      queue_running_stale: snapshot.services.queue.runningStale
     },
     requestId: req.id
   });
@@ -204,6 +212,13 @@ router.get('/status/services', async (req, res) => {
         ok: snapshot.services.redis.ok,
         latency_ms: snapshot.services.redis.latencyMs,
         error: snapshot.services.redis.error ?? null
+      },
+      queue: {
+        ok: snapshot.services.queue.ok,
+        latency_ms: snapshot.services.queue.latencyMs,
+        error: snapshot.services.queue.error ?? null,
+        queued_overdue: snapshot.services.queue.queuedOverdue,
+        running_stale: snapshot.services.queue.runningStale
       }
     },
     request_id: req.id
@@ -247,6 +262,13 @@ router.get('/status/services/history', async (req, res) => {
           ok: entry.services.redis.ok,
           latency_ms: entry.services.redis.latencyMs,
           error: entry.services.redis.error ?? null
+        },
+        queue: {
+          ok: entry.services.queue.ok,
+          latency_ms: entry.services.queue.latencyMs,
+          error: entry.services.queue.error ?? null,
+          queued_overdue: entry.services.queue.queuedOverdue,
+          running_stale: entry.services.queue.runningStale
         }
       }
     })),

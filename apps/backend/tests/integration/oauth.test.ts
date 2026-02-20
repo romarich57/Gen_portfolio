@@ -1,7 +1,6 @@
-import test, { describe, before, after, beforeEach } from 'node:test';
+import test, { describe, after, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { mock } from 'node:test';
 
 import '../setupEnv';
 import '../helpers/db';
@@ -16,7 +15,7 @@ describe('OAuth Flow (GitHub)', () => {
         if (fetchMock) fetchMock.mock.restore();
 
         // Mock global fetch
-        fetchMock = mock.method(global, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+        fetchMock = mock.method(global, 'fetch', async (input: RequestInfo | URL, _init?: RequestInit) => {
             const url = input.toString();
 
             // Mock GitHub Token Exchange
@@ -67,15 +66,6 @@ describe('OAuth Flow (GitHub)', () => {
     });
 
     test('GET /auth/oauth/github/callback handles successful login', async () => {
-        // 1. Start flow to get cookies
-        const startRes = await request(app).get('/auth/oauth/github/start');
-        const cookies = startRes.headers['set-cookie'] as unknown as string[];
-
-        const stateCookie = cookies.find((c: string) => c.startsWith('oauth_state_github'));
-        // Extract raw value roughly (or use a cookie jar)
-        // format: name=s%3Avalue.sig; Path=/; HttpOnly...
-        // We can just pass the cookies back in the next request.
-
         // Extract values for query params
         // Node: signed cookies have a signature. The app checks req.signedCookies.
         // Supertest agent automatically handles cookies if we use it, but here we manually extracting.
@@ -99,7 +89,6 @@ describe('OAuth Flow (GitHub)', () => {
 
         const redirectUrl = new URL(startAgentRes.header.location);
         const stateParam = redirectUrl.searchParams.get('state');
-        const nonceParam = redirectUrl.searchParams.get('nonce'); // Not used in callback query directly, but implicit?
         // Code: const nonceFromState = state.split('.')[1];
 
         assert.ok(stateParam);

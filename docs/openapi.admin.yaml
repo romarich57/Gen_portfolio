@@ -2,7 +2,15 @@ openapi: 3.1.0
 info:
   title: SaaS Builder Admin API
   version: 0.1.0
-  description: Admin API for Feature 05.
+  description: |
+    Admin API for Feature 05.
+    Dedicated throttling on /api/admin/* (independent from global limiter):
+    - Read burst: 8 req / 10s
+    - Read cooldown: 30 req / 60s
+    - Write burst: 4 req / 10s
+    - Write cooldown: 12 req / 60s
+    - Key: userId + IP + method + route
+    Exceeding limits returns 429 RATE_LIMITED.
 servers:
   - url: https://localhost:4000
 paths:

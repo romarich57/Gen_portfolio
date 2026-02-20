@@ -45,6 +45,24 @@ test('recovery email request and verify flow', async () => {
     .set('Origin', 'http://localhost:3000');
 
   assert.equal(verifyRes.status, 200);
+  assert.ok(verifyRes.body.confirmation_token);
+
+  const confirmRes = await agent
+    .post('/auth/recovery-email/verify')
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', token)
+    .send({ confirmation_token: verifyRes.body.confirmation_token });
+
+  assert.equal(confirmRes.status, 200);
+
+  const replayRes = await agent
+    .post('/auth/recovery-email/verify')
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', token)
+    .send({ confirmation_token: verifyRes.body.confirmation_token });
+
+  assert.equal(replayRes.status, 400);
+  assert.equal(replayRes.body.error, 'TOKEN_INVALID');
 
   const updated = await prisma.user.findUnique({ where: { id: user.id } });
   assert.equal(updated?.recoveryEmail, 'backup@test.com');

@@ -18,6 +18,15 @@ function VerifyRecoveryEmail() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!token) return;
+    const nextQuery = new URLSearchParams(searchParams);
+    nextQuery.delete('token');
+    const queryString = nextQuery.toString();
+    const nextUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ''}${window.location.hash}`;
+    window.history.replaceState({}, document.title, nextUrl);
+  }, [token, searchParams]);
+
+  useEffect(() => {
     if (!token) {
       setStatus('error');
       setError('Lien de verification manquant.');

@@ -2,6 +2,8 @@ import { rateLimit, ipKeyGenerator, type Options, type RateLimitRequestHandler }
 import type { Request, Response, NextFunction } from 'express';
 import { RedisStore } from 'rate-limit-redis';
 import { getRedisClient } from '../services/redis';
+import { ACCESS_COOKIE_NAME } from '../config/auth';
+import { verifyAccessToken } from '../utils/jwt';
 
 type RateLimitConfig = {
   windowMs: number;
@@ -34,6 +36,29 @@ function accountKeyGenerator(req: Request): string {
   const email = typeof req.body?.email === 'string' ? req.body.email.toLowerCase() : '';
   const identifier = typeof req.body?.identifier === 'string' ? req.body.identifier.toLowerCase() : '';
   return [route, email || identifier].filter(Boolean).join('|') || route;
+}
+
+function resolveRequestUserId(req: Request): string {
+  if (typeof req.user?.id === 'string' && req.user.id.length > 0) {
+    return req.user.id;
+  }
+
+  const accessToken = req.cookies?.[ACCESS_COOKIE_NAME] as string | undefined;
+  if (!accessToken) return 'anon';
+
+  try {
+    const payload = verifyAccessToken(accessToken);
+    return payload.sub || 'anon';
+  } catch {
+    return 'anon';
+  }
+}
+
+function adminKeyGenerator(req: Request): string {
+  const route = `${req.baseUrl}${req.path}`;
+  const ipKey = ipKeyGenerator(req.ip || '0.0.0.0');
+  const actor = resolveRequestUserId(req);
+  return [actor, ipKey, req.method, route].join('|');
 }
 
 function rateLimitHandler(
@@ -71,4 +96,60 @@ const globalLimiter = buildRateLimiter({
     req.originalUrl.startsWith('/webhooks/stripe') || req.originalUrl.startsWith('/health')
 });
 
-export { buildRateLimiter, buildRateLimitKey, accountKeyGenerator, globalLimiter };
+const adminReadBurstLimiter = buildRateLimiter({
+  windowMs: 10 * 1000,
+  limit: 8,
+  keyGenerator: adminKeyGenerator
+});
+
+const adminReadCooldownLimiter = buildRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 30,
+  keyGenerator: adminKeyGenerator
+});
+
+const adminWriteBurstLimiter = buildRateLimiter({
+  windowMs: 10 * 1000,
+  limit: 4,
+  keyGenerator: adminKeyGenerator
+});
+
+const adminWriteCooldownLimiter = buildRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 12,
+  keyGenerator: adminKeyGenerator
+});
+
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+function runRateLimiterChain(handlers: RateLimitRequestHandler[], req: Request, res: Response, next: NextFunction): void {
+  let index = 0;
+
+  const run = (err?: unknown) => {
+    if (err) {
+      next(err);
+      return;
+    }
+
+    const handler = handlers[index];
+    index += 1;
+    if (!handler) {
+      next();
+      return;
+    }
+
+    handler(req, res, run);
+  };
+
+  run();
+}
+
+function adminApiLimiter(req: Request, res: Response, next: NextFunction): void {
+  const isRead = SAFE_METHODS.has(req.method);
+  const handlers = isRead
+    ? [adminReadBurstLimiter, adminReadCooldownLimiter]
+    : [adminWriteBurstLimiter, adminWriteCooldownLimiter];
+  runRateLimiterChain(handlers, req, res, next);
+}
+
+export { buildRateLimiter, buildRateLimitKey, accountKeyGenerator, globalLimiter, adminApiLimiter };

@@ -8,6 +8,7 @@ Returns:
 - id, email
 - has_password
 - first_name, last_name, username, nationality, locale
+- github_username, cv_url
 - roles
 - avatar_url (signed GET, short TTL)
 - mfa_enabled, mfa_required
@@ -25,6 +26,9 @@ Input (required):
 - last_name (1–64)
 - username (regex `^[a-zA-Z0-9_]{3,30}$`)
 - nationality (ISO2, uppercase)
+Input (optional):
+- github_username (string)
+- cv_url (string S3)
 Rules:
 - username unique
 - sets `onboarding_completed_at` when complete
@@ -42,7 +46,7 @@ Returns:
 Auth: yes
 CSRF: yes
 Input (optional):
-- first_name, last_name, username, nationality, locale
+- first_name, last_name, username, nationality, locale, github_username, cv_url
 Rules:
 - username modifiable unlimited times, validated + unique
 Errors: VALIDATION_ERROR, USERNAME_TAKEN
@@ -132,6 +136,15 @@ Audit: RECOVERY_EMAIL_REMOVED
 Auth: no
 Input:
 - token (query)
+Effect:
+- bootstrap non mutating (retourne `confirmation_token`, `Cache-Control: no-store`)
+Audit: none
+
+### POST /auth/recovery-email/verify
+Auth: no
+CSRF: yes
+Input:
+- confirmation_token (body)
 Effect:
 - sets recovery_email + recovery_email_verified_at
 Audit: RECOVERY_EMAIL_VERIFIED

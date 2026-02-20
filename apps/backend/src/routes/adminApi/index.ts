@@ -1,0 +1,1 @@
+export { adminApiRouter } from './router';

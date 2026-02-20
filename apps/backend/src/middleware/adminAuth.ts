@@ -8,7 +8,7 @@ function hasAdminRole(roles: string[] | undefined): boolean {
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  return requireAuth(req, res, () => {
+  void requireAuth(req, res, () => {
     const roles = req.user?.roles ?? [];
     if (!hasAdminRole(roles)) {
       res.status(403).json({ error: 'FORBIDDEN', request_id: req.id });
@@ -19,7 +19,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
 }
 
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
-  return requireAuth(req, res, () => {
+  void requireAuth(req, res, () => {
     const roles = req.user?.roles ?? [];
     if (!roles.includes('super_admin')) {
       res.status(403).json({ error: 'FORBIDDEN', request_id: req.id });

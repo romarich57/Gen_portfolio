@@ -23,6 +23,11 @@ async function createSession(userId: string) {
   });
 }
 
+async function getCsrf(agent: request.SuperTest<request.Test>) {
+  const res = await agent.get('/auth/csrf').set('Origin', 'http://localhost:3000');
+  return { token: res.body.csrfToken as string };
+}
+
 test('revoke all sessions from security alert token', async () => {
   const user = await prisma.user.create({
     data: {
@@ -46,11 +51,31 @@ test('revoke all sessions from security alert token', async () => {
     }
   });
 
-  const res = await request(app)
+  const agent = request.agent(app);
+  const { token: csrfToken } = await getCsrf(agent);
+
+  const res = await agent
     .get(`/auth/security/revoke-sessions?token=${encodeURIComponent(rawToken)}`)
     .set('Origin', 'http://localhost:3000');
 
   assert.equal(res.status, 200);
+  assert.ok(res.body.confirmation_token);
+
+  const confirmRes = await agent
+    .post('/auth/security/revoke-sessions')
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', csrfToken)
+    .send({ confirmation_token: res.body.confirmation_token });
+
+  assert.equal(confirmRes.status, 200);
+
+  const replayRes = await agent
+    .post('/auth/security/revoke-sessions')
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', csrfToken)
+    .send({ confirmation_token: res.body.confirmation_token });
+  assert.equal(replayRes.status, 400);
+  assert.equal(replayRes.body.error, 'TOKEN_INVALID');
 
   const updatedSession = await prisma.session.findUnique({ where: { id: session.id } });
   assert.ok(updatedSession?.revokedAt);

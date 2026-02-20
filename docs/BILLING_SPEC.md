@@ -29,11 +29,15 @@ Audit: `BILLING_PORTAL_OPENED`
 ### GET /billing/status
 Auth: oui.
 Retour: `plan_code`, `status`, `period_start`, `period_end`, `cancel_at_period_end`, `entitlements`, `roles`.
+Note compatibilité: `scheduled_plan_code` peut encore être présent mais est **déprécié**.
 
 ## Flows
 - Subscribe/upgrade/downgrade via Checkout + webhooks.
-- Cancel: accès conservé jusqu’à `current_period_end` (Stripe).
+- Upgrade paid: changement Stripe immédiat.
+- Downgrade paid→paid: changement Stripe immédiat (sans prorata).
+- Downgrade paid→FREE: annulation Stripe immédiate, puis bascule FREE via webhook `customer.subscription.deleted`.
 - Expiry: via `customer.subscription.deleted` => FREE + rôles révoqués.
+- Source de vérité rôles/entitlements: **webhooks Stripe uniquement**.
 
 ## Configuration Stripe (obligatoire)
 - Les plans PREMIUM/VIP doivent avoir un `stripe_price_id` valide.
@@ -49,3 +53,6 @@ Retour: `plan_code`, `status`, `period_start`, `period_end`, `cancel_at_period_e
 - Signature Stripe + raw body obligatoire.
 - Idempotency via `webhook_events`.
 - Attribution rôle uniquement via webhook.
+- Accusés webhook:
+  - `200` pour duplicate / ignored / mismatch métier non retryable
+  - `500` uniquement pour `PROCESSING_ERROR` retryable

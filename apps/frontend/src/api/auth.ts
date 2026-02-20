@@ -1,7 +1,38 @@
 import { apiRequest } from './http';
 import { API_BASE_URL } from './config';
+import { fetchCsrfToken, getCsrfToken } from './csrf';
 
 export type LoginResult = { ok: true } | { error: string };
+
+type ActionBootstrapResponse = {
+  confirmation_token: string;
+};
+
+async function ensureCsrfToken() {
+  if (getCsrfToken()) return;
+  await fetchCsrfToken();
+}
+
+async function confirmBootstrapAction(
+  bootstrapPath: string,
+  confirmPath: string,
+  token: string,
+  skipAuthRedirect = true
+) {
+  const query = new URLSearchParams({ token });
+  const bootstrap = await apiRequest<ActionBootstrapResponse>(`${bootstrapPath}?${query.toString()}`, {
+    method: 'GET',
+    skipAuthRedirect
+  });
+
+  await ensureCsrfToken();
+
+  return apiRequest<{ ok?: boolean }>(confirmPath, {
+    method: 'POST',
+    body: JSON.stringify({ confirmation_token: bootstrap.confirmation_token }),
+    skipAuthRedirect
+  });
+}
 
 /**
  * Register a new user.
@@ -30,11 +61,7 @@ export async function register(params: {
  * Postconditions: email verified and onboarding cookie set.
  */
 export async function verifyEmail(token: string) {
-  const query = new URLSearchParams({ token });
-  return apiRequest<{ ok?: boolean }>(`/auth/email/verify?${query.toString()}`, {
-    method: 'GET',
-    skipAuthRedirect: true
-  });
+  return confirmBootstrapAction('/auth/email/verify', '/auth/email/verify', token, true);
 }
 
 /**
@@ -201,36 +228,26 @@ export async function setPassword(params: { password: string; password_confirmat
  * Verify email change token.
  */
 export async function verifyEmailChange(token: string) {
-  return apiRequest<{ ok: boolean }>(`/auth/email/change/verify?token=${token}`, {
-    method: 'GET'
-  });
+  return confirmBootstrapAction('/auth/email/change/verify', '/auth/email/change/verify', token, true);
 }
 
 /**
  * Verify recovery email token.
  */
 export async function verifyRecoveryEmail(token: string) {
-  return apiRequest<{ ok: boolean }>(`/auth/recovery-email/verify?token=${token}`, {
-    method: 'GET'
-  });
+  return confirmBootstrapAction('/auth/recovery-email/verify', '/auth/recovery-email/verify', token, true);
 }
 
 /**
  * Revoke all sessions via security alert token.
  */
 export async function revokeSessionsFromAlert(token: string) {
-  return apiRequest<{ ok: boolean }>(`/auth/security/revoke-sessions?token=${encodeURIComponent(token)}`, {
-    method: 'GET',
-    skipAuthRedirect: true
-  });
+  return confirmBootstrapAction('/auth/security/revoke-sessions', '/auth/security/revoke-sessions', token, true);
 }
 
 /**
  * Acknowledge security alert (\"C'etait moi\").
  */
 export async function acknowledgeSecurityAlert(token: string) {
-  return apiRequest<{ ok: boolean }>(`/auth/security/acknowledge-alert?token=${encodeURIComponent(token)}`, {
-    method: 'GET',
-    skipAuthRedirect: true
-  });
+  return confirmBootstrapAction('/auth/security/acknowledge-alert', '/auth/security/acknowledge-alert', token, true);
 }

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { ipKeyGenerator } from 'express-rate-limit';
 import { requireAuth, requirePermission } from '../middleware/rbac';
 import { buildRateLimiter } from '../middleware/rateLimit';
-import { prisma } from '../db/prisma';
+import { billingRepository } from '../domains/billing/billing.repository';
 import { env } from '../config/env';
 import { logger } from '../middleware/logger';
 import { writeAuditLog } from '../services/audit';
@@ -85,7 +85,7 @@ router.post(
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await billingRepository.user.findUnique({ where: { id: userId } });
     if (!user) {
       res.status(404).json({ error: 'NOT_FOUND', request_id: req.id });
       return;
@@ -195,7 +195,7 @@ router.post(
       return;
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await billingRepository.user.findUnique({ where: { id: userId } });
     if (!user) {
       res.status(404).json({ error: 'NOT_FOUND', request_id: req.id });
       return;
@@ -275,7 +275,7 @@ const handlePortal = async (req: Request, res: Response) => {
       requestId: req.id
     });
     res.json({ portal_url: session.url, request_id: req.id });
-  } catch (error) {
+  } catch {
     res.status(400).json({ error: 'BILLING_PORTAL_UNAVAILABLE', request_id: req.id });
   }
 };

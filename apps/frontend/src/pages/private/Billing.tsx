@@ -9,14 +9,6 @@ import Loading from '@/components/common/Loading';
 import { createPortalSession, getBillingStatus, changePlan } from '@/api/billing';
 import type { ApiError } from '@/api/http';
 import { useAuth } from '@/app/providers/AuthBootstrap';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/Dialog';
 
 const upgradeOptions = [
   {
@@ -51,7 +43,6 @@ function Billing() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [debug, setDebug] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
-  const [downgradeTarget, setDowngradeTarget] = useState<'FREE' | 'PREMIUM' | 'VIP' | null>(null);
 
   const {
     data: billingStatus,
@@ -99,7 +90,7 @@ function Billing() {
       const baseMessage =
         response.message ||
         (response.changeType === 'downgrade'
-          ? 'Plan rétrogradé avec succès (différé).'
+          ? 'Plan rétrogradé avec succès.'
           : 'Plan mis à jour avec succès.');
 
       setSuccessMessage(appliedMessage ? `${appliedMessage} ${baseMessage}` : baseMessage);
@@ -130,10 +121,6 @@ function Billing() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const requestDowngrade = (target: 'FREE' | 'PREMIUM') => {
-    setDowngradeTarget(target);
   };
 
   const handlePortal = async () => {
@@ -174,7 +161,6 @@ function Billing() {
   }
 
   const planLabel = billingStatus.plan_code ?? 'FREE';
-  const scheduledPlan = billingStatus.scheduled_plan_code;
   const entitlements = billingStatus.entitlements;
   const projectsLimit = entitlements?.projects_limit;
 
@@ -183,19 +169,13 @@ function Billing() {
     const optionLevel = PLAN_LEVELS[optionCode];
 
     if (planLabel === optionCode) {
-      if (scheduledPlan) return { label: 'Actif (fin de période)', disabled: true };
       return { label: 'Actif', disabled: true };
-    }
-
-    // If pending downgrade to this plan
-    if (scheduledPlan === optionCode) {
-      return { label: 'Programmé', disabled: true };
     }
 
     if (optionLevel > currentLevel) {
       return { label: `Passer à ${PLAN_LABELS[optionCode]}`, disabled: false, variant: 'primary' };
     } else {
-      return { label: 'Rétrograder', disabled: false, variant: 'outline' };
+      return { label: `Basculer vers ${PLAN_LABELS[optionCode]}`, disabled: false, variant: 'outline' };
     }
   };
 
@@ -227,11 +207,6 @@ function Billing() {
         <CardHeader>
           <div className="flex gap-2 mb-2">
             <Badge className="bg-primary/10 text-primary border-primary/20 rounded-none uppercase text-[10px] font-bold tracking-widest">Plan actuel</Badge>
-            {scheduledPlan && (
-              <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20 rounded-none uppercase text-[10px] font-bold tracking-widest">
-                Change bientôt en {PLAN_LABELS[scheduledPlan]}
-              </Badge>
-            )}
           </div>
           <h2 className="text-2xl font-display font-black tracking-tighter uppercase text-foreground">{planLabel}</h2>
           <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest mt-1">
@@ -241,10 +216,8 @@ function Billing() {
         <CardContent>
           <div className="text-sm text-mutedForeground">
             {billingStatus.cancel_at_period_end
-              ? 'Annulation en fin de periode'
-              : scheduledPlan
-                ? `Passage à ${PLAN_LABELS[scheduledPlan]} à la fin de la période`
-                : 'Renouvellement automatique'}
+              ? 'Annulation en fin de periode (legacy)'
+              : 'Renouvellement automatique'}
           </div>
         </CardContent>
         <CardFooter>
@@ -258,7 +231,7 @@ function Billing() {
         {upgradeOptions.map((option) => {
           const { label, disabled, variant } = getButtonState(option.code);
           return (
-            <Card key={option.code} className={scheduledPlan === option.code ? 'border-orange-500/50' : ''}>
+            <Card key={option.code}>
               <CardHeader>
                 <h3 className="text-xl font-display font-black tracking-tighter uppercase text-foreground">{option.title}</h3>
                 <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest">{option.price}</p>
@@ -271,12 +244,6 @@ function Billing() {
                   variant={variant ?? 'primary'}
                   className="w-full rounded-none font-mono text-[10px] tracking-widest h-10 uppercase transition-all"
                   onClick={() => {
-                    const currentLevel = PLAN_LEVELS[planLabel];
-                    const optionLevel = PLAN_LEVELS[option.code];
-                    if (optionLevel < currentLevel) {
-                      requestDowngrade(option.code as 'PREMIUM');
-                      return;
-                    }
                     void handleChangePlan(option.code);
                   }}
                   disabled={loading || !csrfToken || disabled}
@@ -289,45 +256,20 @@ function Billing() {
         })}
       </section>
 
-      {planLabel !== 'FREE' && !scheduledPlan && (
+      {planLabel !== 'FREE' && (
         <div className="flex justify-center mt-8">
           <Button
             variant="ghost"
             className="text-muted-foreground hover:text-destructive text-xs uppercase tracking-widest"
-            onClick={() => requestDowngrade('FREE')}
+            onClick={() => {
+              void handleChangePlan('FREE');
+            }}
             disabled={loading}
           >
-            Revenir au plan gratuit (Annuler)
+            Revenir au plan gratuit
           </Button>
         </div>
       )}
-
-      <Dialog open={!!downgradeTarget} onOpenChange={(open) => !open && setDowngradeTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmer la rétrogradation</DialogTitle>
-            <DialogDescription>
-              Le changement vers {downgradeTarget} prendra effet à la fin de votre période de facturation actuelle.
-              Vous conserverez vos avantages jusqu’à cette date.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDowngradeTarget(null)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={() => {
-                if (!downgradeTarget) return;
-                void handleChangePlan(downgradeTarget);
-                setDowngradeTarget(null);
-              }}
-              disabled={loading}
-            >
-              Confirmer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

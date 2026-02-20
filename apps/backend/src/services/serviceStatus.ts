@@ -3,11 +3,18 @@ import { logger } from '../middleware/logger';
 import { checkSmtpConnection, sendEmail } from './email';
 import { checkS3Connection } from './s3';
 import { checkRedisConnection } from './redis';
+import { prisma } from '../db/prisma';
+import { JobStatus } from '@prisma/client';
 
 export type ServiceCheck = {
   ok: boolean;
   latencyMs: number | null;
   error?: string | null;
+};
+
+export type QueueServiceCheck = ServiceCheck & {
+  queuedOverdue: number;
+  runningStale: number;
 };
 
 export type ServiceStatusSnapshot = {
@@ -17,6 +24,7 @@ export type ServiceStatusSnapshot = {
     smtp: ServiceCheck;
     s3: ServiceCheck;
     redis: ServiceCheck;
+    queue: QueueServiceCheck;
   };
 };
 
@@ -32,6 +40,7 @@ type ServiceStatusOverrides = {
   checkSmtp?: () => Promise<ServiceCheck>;
   checkS3?: () => Promise<ServiceCheck>;
   checkRedis?: () => Promise<ServiceCheck>;
+  checkQueue?: () => Promise<QueueServiceCheck>;
   sendEmail?: typeof sendEmail;
   postSlack?: (webhookUrl: string, body: string) => Promise<void>;
   alertEmail?: string | null;
@@ -60,6 +69,59 @@ function formatIssue(label: string, service: ServiceCheck) {
   return `${label}: DOWN${error}`;
 }
 
+const QUEUED_OVERDUE_WINDOW_MS = 5 * 60 * 1000;
+const RUNNING_STALE_WINDOW_MS = 15 * 60 * 1000;
+
+async function checkQueueConnection(): Promise<QueueServiceCheck> {
+  if (env.isTest) {
+    return { ok: true, latencyMs: 0, error: null, queuedOverdue: 0, runningStale: 0 };
+  }
+
+  const start = Date.now();
+  try {
+    const now = new Date();
+    const queuedThreshold = new Date(now.getTime() - QUEUED_OVERDUE_WINDOW_MS);
+    const runningThreshold = new Date(now.getTime() - RUNNING_STALE_WINDOW_MS);
+
+    const [queuedOverdue, runningStale] = await Promise.all([
+      prisma.job.count({
+        where: {
+          status: JobStatus.queued,
+          runAfter: { lt: queuedThreshold }
+        }
+      }),
+      prisma.job.count({
+        where: {
+          status: JobStatus.running,
+          OR: [
+            { lockedAt: null },
+            { lockedAt: { lt: runningThreshold } }
+          ]
+        }
+      })
+    ]);
+
+    const ok = queuedOverdue === 0 && runningStale === 0;
+    const error = ok ? null : `QUEUED_OVERDUE=${queuedOverdue},RUNNING_STALE=${runningStale}`;
+    return {
+      ok,
+      latencyMs: Date.now() - start,
+      error,
+      queuedOverdue,
+      runningStale
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'QUEUE_UNAVAILABLE';
+    return {
+      ok: false,
+      latencyMs: Date.now() - start,
+      error: message.slice(0, 160),
+      queuedOverdue: 0,
+      runningStale: 0
+    };
+  }
+}
+
 async function notifyStatusChange(previous: ServiceStatusSnapshot | null, current: ServiceStatusSnapshot) {
   const alertEmail = overrides?.alertEmail ?? env.serviceStatusAlertEmail;
   const alertSlackWebhook = overrides?.alertSlackWebhook ?? env.serviceStatusAlertSlackWebhook;
@@ -86,7 +148,8 @@ async function notifyStatusChange(previous: ServiceStatusSnapshot | null, curren
   const issues = [
     formatIssue('SMTP', current.services.smtp),
     formatIssue('S3', current.services.s3),
-    formatIssue('Redis', current.services.redis)
+    formatIssue('Redis', current.services.redis),
+    formatIssue('Queue', current.services.queue)
   ].filter(Boolean);
 
   const subjectPrefix = current.ok ? 'RECOVERY' : 'ALERT';
@@ -143,15 +206,23 @@ export async function refreshServiceStatus(options: { notify?: boolean } = {}) {
   const checkSmtp = overrides?.checkSmtp ?? checkSmtpConnection;
   const checkS3 = overrides?.checkS3 ?? checkS3Connection;
   const checkRedis = overrides?.checkRedis ?? checkRedisConnection;
+  const checkQueue = overrides?.checkQueue ?? checkQueueConnection;
 
-  const [smtp, s3, redis] = await Promise.all([checkSmtp(), checkS3(), checkRedis()]);
+  const [smtp, s3, redis, queue] = await Promise.all([checkSmtp(), checkS3(), checkRedis(), checkQueue()]);
   const snapshot: ServiceStatusSnapshot = {
-    ok: smtp.ok && s3.ok && redis.ok,
+    ok: smtp.ok && s3.ok && redis.ok && queue.ok,
     checkedAt: new Date(),
     services: {
       smtp: { ok: smtp.ok, latencyMs: smtp.latencyMs ?? null, error: smtp.error ?? null },
       s3: { ok: s3.ok, latencyMs: s3.latencyMs ?? null, error: s3.error ?? null },
-      redis: { ok: redis.ok, latencyMs: redis.latencyMs ?? null, error: redis.error ?? null }
+      redis: { ok: redis.ok, latencyMs: redis.latencyMs ?? null, error: redis.error ?? null },
+      queue: {
+        ok: queue.ok,
+        latencyMs: queue.latencyMs ?? null,
+        error: queue.error ?? null,
+        queuedOverdue: queue.queuedOverdue ?? 0,
+        runningStale: queue.runningStale ?? 0
+      }
     }
   };
 

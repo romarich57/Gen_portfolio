@@ -36,6 +36,8 @@ type EnvConfig = {
   oauthRedirectBaseUrl: string;
   oauthGoogleRedirectUri: string | null;
   oauthGithubRedirectUri: string | null;
+  oauthDebugEnabled: boolean;
+  oauthDebugIpAllowlist: string[];
   stripeSecretKey: string;
   stripeWebhookSecret: string;
   stripeTaxEnabled: boolean;
@@ -97,6 +99,21 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
   return fallback;
 }
 
+function findDuplicateEnvKeys(keys: string[]): string[] {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+
+  for (const key of keys) {
+    if (seen.has(key)) {
+      duplicates.add(key);
+      continue;
+    }
+    seen.add(key);
+  }
+
+  return Array.from(duplicates);
+}
+
 function loadEnv(): EnvConfig {
   if (cached) return cached;
 
@@ -105,7 +122,6 @@ function loadEnv(): EnvConfig {
   const required = [
     'DATABASE_URL',
     'CORS_ORIGINS',
-    'ACCESS_TOKEN_SECRET',
     'ACCESS_TOKEN_SECRET',
     'REFRESH_TOKEN_SECRET',
     'MFA_CHALLENGE_SECRET',
@@ -141,6 +157,12 @@ function loadEnv(): EnvConfig {
     'S3_PRESIGN_PUT_TTL_SECONDS',
     'S3_PRESIGN_GET_TTL_SECONDS'
   ];
+  const duplicateRequired = findDuplicateEnvKeys(required);
+  if (duplicateRequired.length > 0) {
+    // eslint-disable-next-line no-console
+    console.error(`Duplicate required env vars configured: ${duplicateRequired.join(', ')}`);
+    process.exit(1);
+  }
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
@@ -284,6 +306,11 @@ function loadEnv(): EnvConfig {
     oauthRedirectBaseUrl: process.env.OAUTH_REDIRECT_BASE_URL!,
     oauthGoogleRedirectUri: process.env.OAUTH_GOOGLE_REDIRECT_URI || null,
     oauthGithubRedirectUri: process.env.OAUTH_GITHUB_REDIRECT_URI || null,
+    oauthDebugEnabled: parseBoolean(process.env.OAUTH_DEBUG_ENABLED, false),
+    oauthDebugIpAllowlist: (process.env.OAUTH_DEBUG_IP_ALLOWLIST ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
     stripeSecretKey: process.env.STRIPE_SECRET_KEY!,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
     stripeTaxEnabled: process.env.STRIPE_TAX_ENABLED === 'true',
@@ -356,3 +383,4 @@ function loadEnv(): EnvConfig {
 }
 
 export const env = loadEnv();
+export { findDuplicateEnvKeys };

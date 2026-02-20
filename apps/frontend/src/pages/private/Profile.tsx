@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
@@ -36,6 +36,8 @@ import type { ApiError } from '@/api/http';
 import { useToast } from '@/components/common/ToastProvider';
 import { isProfileComplete } from '@/utils/profile';
 import { cn } from '@/lib/utils';
+import { OAuthProviderItem, SidebarItem } from './profile/ProfilePrimitives';
+import { useProfileUiState } from './profile/useProfileUiState';
 
 // Inline Icons to avoid dependency issues
 const Icons = {
@@ -94,13 +96,25 @@ const Icons = {
   )
 };
 
-type Tab = 'INFO' | 'CONNECTIONS' | 'SECURITY' | 'DATA' | 'NOTIFICATIONS' | 'PLAN' | 'HISTORY';
-
 function Profile() {
   const { user, refreshUser, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>('INFO');
+  const {
+    activeTab,
+    setActiveTab,
+    avatarInputRef,
+    showSetPasswordModal,
+    setShowSetPasswordModal,
+    showChangePasswordModal,
+    setShowChangePasswordModal,
+    showChangeEmailModal,
+    setShowChangeEmailModal,
+    showBackupCodesModal,
+    setShowBackupCodesModal,
+    showDeleteModal,
+    setShowDeleteModal
+  } = useProfileUiState();
 
   // Forms states
   const [profileForm, setProfileForm] = useState({
@@ -127,19 +141,14 @@ function Profile() {
   const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string | undefined>>({});
   const [onboardingFieldErrors, setOnboardingFieldErrors] = useState<Record<string, string | undefined>>({});
   const [avatarUploading, setAvatarUploading] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // OAuth disconnect state
   const [disconnectingProvider, setDisconnectingProvider] = useState<string | null>(null);
-  const [showSetPasswordModal, setShowSetPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [settingPassword, setSettingPassword] = useState(false);
 
   // Password / Email change state
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
-
   const [cpCurrent, setCpCurrent] = useState('');
   const [cpNew, setCpNew] = useState('');
   const [cpConfirm, setCpConfirm] = useState('');
@@ -150,7 +159,6 @@ function Profile() {
   const [changingEmail, setChangingEmail] = useState(false);
 
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
-  const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
   const [backupCodesLoading, setBackupCodesLoading] = useState(false);
   const [backupCodesError, setBackupCodesError] = useState<string | null>(null);
 
@@ -169,7 +177,6 @@ function Profile() {
   const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
   const [revokingAllSessions, setRevokingAllSessions] = useState(false);
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -1526,26 +1533,6 @@ function Profile() {
   );
 }
 
-// Sub-components
-function SidebarItem({ icon, label, active, onClick }: { icon: ReactNode, label: string, active: boolean, onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 px-4 py-3 text-sm font-black uppercase tracking-[0.1em] font-mono transition-all border-r-2 group",
-        active
-          ? "border-primary bg-primary/5 text-primary"
-          : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-      )}
-    >
-      <span className={cn("transition-colors", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
-        {icon}
-      </span>
-      {label}
-    </button>
-  );
-}
-
 function Field({
   label,
   error,
@@ -1565,57 +1552,6 @@ function Field({
       {children}
       {error && <p className="text-[10px] font-bold text-destructive flex items-center gap-1 uppercase tracking-tighter"><Icons.AlertCircle /> {error}</p>}
     </div>
-  );
-}
-
-function OAuthProviderItem({
-  name,
-  connected,
-  icon,
-  disconnecting,
-  onDisconnect,
-  onConnect
-}: {
-  name: string,
-  connected?: boolean,
-  icon: ReactNode,
-  disconnecting?: boolean,
-  onDisconnect?: () => void,
-  onConnect?: () => void
-}) {
-  return (
-    <Card className="border-border/50 group hover:border-primary/20 transition-all">
-      <CardContent className="flex items-center justify-between py-4">
-        <div className="flex items-center gap-4">
-          {icon}
-          <div>
-            <h4 className="font-bold uppercase tracking-tight">{name}</h4>
-            <p className="text-xs text-muted-foreground font-mono italic">
-              {connected ? 'Connecté' : 'Non connecté'}
-            </p>
-          </div>
-        </div>
-        {connected ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-destructive/30 text-destructive hover:bg-destructive hover:text-white rounded-none uppercase font-mono text-[9px] font-black tracking-widest"
-            onClick={onDisconnect}
-            disabled={disconnecting}
-          >
-            {disconnecting ? 'Déconnexion...' : 'Déconnecter'}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            className="rounded-none uppercase font-mono text-[9px] font-black tracking-widest"
-            onClick={onConnect}
-          >
-            Connecter
-          </Button>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 

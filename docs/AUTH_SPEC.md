@@ -64,20 +64,44 @@ Audit: `REFRESH_ROTATED`.
 Retourne un token CSRF + set cookie `csrf_token`.
 
 ### GET /auth/email/verify?token=...
-Valide token email. Met user `active` (email vérifié). Aucun onboarding phone imposé.
+Bootstrap de confirmation (non mutating). Retourne `confirmation_token` (TTL 5 min) + `Cache-Control: no-store`.
+
+### POST /auth/email/verify
+Input: `{ "confirmation_token": "..." }`
+Valide l’email et active l’utilisateur.
 Audit: `EMAIL_VERIFIED`.
 
 ### GET /auth/recovery-email/verify?token=...
-Valide l'email de recuperation.
+Bootstrap de confirmation (non mutating). Retourne `confirmation_token` (TTL 5 min) + `Cache-Control: no-store`.
+
+### POST /auth/recovery-email/verify
+Input: `{ "confirmation_token": "..." }`
+Valide l’email de récupération.
 Audit: `RECOVERY_EMAIL_VERIFIED`.
 
 ### GET /auth/security/revoke-sessions?token=...
-Révoque toutes les sessions via un lien d’alerte sécurité (token usage unique + TTL court).
+Bootstrap de confirmation (non mutating). Retourne `confirmation_token` (TTL 5 min) + `Cache-Control: no-store`.
+
+### POST /auth/security/revoke-sessions
+Input: `{ "confirmation_token": "..." }`
+Révoque toutes les sessions via alerte sécurité.
 Audit: `SESSIONS_REVOKED_FROM_ALERT`.
 
 ### GET /auth/security/acknowledge-alert?token=...
-Confirme qu'une connexion est légitime (lien "C'etait moi").
+Bootstrap de confirmation (non mutating). Retourne `confirmation_token` (TTL 5 min) + `Cache-Control: no-store`.
+
+### POST /auth/security/acknowledge-alert
+Input: `{ "confirmation_token": "..." }`
+Confirme qu’une connexion est légitime (lien "C'etait moi").
 Audit: `SECURITY_ALERT_ACKNOWLEDGED`.
+
+### GET /auth/email/change/verify?token=...
+Bootstrap de confirmation (non mutating). Retourne `confirmation_token` (TTL 5 min) + `Cache-Control: no-store`.
+
+### POST /auth/email/change/verify
+Input: `{ "confirmation_token": "..." }`
+Finalise le changement d’email.
+Audit: `EMAIL_CHANGED`.
 
 ### POST /auth/password/reset/request
 Input: `{ "email": "..." }`.
@@ -93,6 +117,7 @@ Audit: `PASSWORD_RESET_SUCCESS`.
 Input: `{ "phoneE164": "+15555550123", "country": "FR" }` (country optionnel).
 Nécessite session authentifiée (optionnel, pas bloquant).
 Rate limit: 2 req/min/IP (configurable via `app_settings.otp_rate_limits`).
+En production, si Redis (store rate-limit distribué) est indisponible: `503 RATE_LIMIT_UNAVAILABLE`.
 Audit: `PHONE_VERIFY_START`.
 
 ### POST /auth/phone/check
@@ -100,6 +125,7 @@ Input: `{ "phoneE164": "+15555550123", "code": "123456", "country": "FR" }` (cou
 Nécessite session authentifiée.
 Si OK: `phoneVerifiedAt` mis à jour (statut `active`).
 Lockout si trop d’essais (`PHONE_VERIFY_LOCKED`).
+En production, si Redis (store rate-limit distribué) est indisponible: `503 RATE_LIMIT_UNAVAILABLE`.
 Audit: `PHONE_VERIFIED` / `PHONE_VERIFY_FAILED` / `PHONE_VERIFY_LOCKED`.
 
 ### POST /auth/mfa/setup/start
@@ -125,6 +151,14 @@ Audit: `OAUTH_START`.
 Échange code + profil. Crée/lie user (email OAuth **doit être vérifié**). Redirige vers front:
 `/oauth/callback?next=complete-profile|mfa-challenge|setup-mfa|dashboard`.
 Audit: `OAUTH_CALLBACK_SUCCESS/FAIL`.
+
+### GET /auth/oauth/debug
+Endpoint de diagnostic OAuth.
+Disponible uniquement si:
+- environnement non production
+- `OAUTH_DEBUG_ENABLED=true`
+- IP requête présente dans `OAUTH_DEBUG_IP_ALLOWLIST`
+Sinon: `404 NOT_FOUND`.
 
 ## Flows onboarding
 1) Register -> email verify
@@ -159,8 +193,8 @@ Retourne la config courante.
 Input:
 ```json
 {
-  "phoneStart": { "windowMs": 60000, "limit": 2 },
-  "phoneCheck": { "windowMs": 60000, "limit": 5, "maxAttempts": 5 }
+  "phoneStart": { "windowMs": 60000, "limit": 2, "targetLimit": 2 },
+  "phoneCheck": { "windowMs": 60000, "limit": 5, "targetLimit": 5, "maxAttempts": 5 }
 }
 ```
 Audit: `ADMIN_OTP_RATE_LIMITS_UPDATED`.

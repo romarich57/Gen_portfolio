@@ -8,6 +8,11 @@ CSRF: `X-CSRF-Token` + Origin/Referer strict sur toutes les routes state‑chang
 - Roles admin: `admin`, `super_admin`.  
 - Roles produit: `user`, `premium`, `vip`.  
 - **Plan code**: l’existant backend utilise `PREMIUM` (pas `PRO`).  
+- Rate limit dédié `/api/admin/*` (indépendant du limiter global):  
+  - Read burst: `8 req / 10s` + read cooldown: `30 req / 60s`  
+  - Write burst: `4 req / 10s` + write cooldown: `12 req / 60s`  
+  - Clé: `userId + IP + method + route`  
+  - Dépassement: `429 RATE_LIMITED`
 
 ---
 

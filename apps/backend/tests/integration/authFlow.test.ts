@@ -39,6 +39,23 @@ test('register -> email verify -> login with username', async () => {
     .set('Origin', 'http://localhost:3000');
 
   assert.equal(verifyRes.status, 200);
+  assert.ok(verifyRes.body.confirmation_token);
+
+  const verifyConfirmRes = await agent
+    .post('/auth/email/verify')
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', token)
+    .send({ confirmation_token: verifyRes.body.confirmation_token });
+
+  assert.equal(verifyConfirmRes.status, 200);
+
+  const verifyReplayRes = await agent
+    .post('/auth/email/verify')
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', token)
+    .send({ confirmation_token: verifyRes.body.confirmation_token });
+  assert.equal(verifyReplayRes.status, 400);
+  assert.equal(verifyReplayRes.body.error, 'TOKEN_INVALID');
 
   const { token: loginCsrf } = await getCsrf(agent);
   const loginRes = await agent

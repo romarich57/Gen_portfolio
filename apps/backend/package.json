@@ -6,15 +6,20 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch src/server.ts",
+    "worker:dev": "NODE_ENV=development tsx watch src/worker.ts",
     "build": "npx prisma generate && tsc -p tsconfig.json",
     "start": "NODE_ENV=production node dist/server.js",
+    "worker": "NODE_ENV=production node dist/worker.js",
+    "worker:once": "NODE_ENV=production WORKER_ONCE=true tsx src/worker.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json",
+    "lint": "npm run lint:eslint && npm run lint:types",
     "test": "NODE_ENV=test tsx --test --test-concurrency=1 \"tests/**/*.test.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "lint:eslint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --max-warnings=0",
+    "lint:types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.975.0",
@@ -26,7 +31,7 @@
     "dotenv": "17.2.3",
     "express": "5.2.1",
     "express-rate-limit": "8.2.1",
-    "geoip-lite": "^1.4.10",
+    "geoip-lite": "1.4.10",
     "helmet": "8.1.0",
     "jsonwebtoken": "9.0.2",
     "libphonenumber-js": "1.12.35",
@@ -45,7 +50,7 @@
     "@types/cookie-parser": "1.4.10",
     "@types/cors": "2.8.19",
     "@types/express": "5.0.6",
-    "@types/geoip-lite": "^1.4.4",
+    "@types/geoip-lite": "1.4.4",
     "@types/jsonwebtoken": "9.0.10",
     "@types/node": "25.0.10",
     "@types/nodemailer": "6.4.17",
@@ -54,7 +59,15 @@
     "prisma": "6.19.2",
     "supertest": "7.2.2",
     "tsx": "4.21.0",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@eslint/js": "9.35.0",
+    "@typescript-eslint/eslint-plugin": "8.43.0",
+    "@typescript-eslint/parser": "8.43.0",
+    "eslint": "9.35.0",
+    "eslint-plugin-import": "2.31.0",
+    "eslint-plugin-promise": "7.2.1",
+    "eslint-plugin-security": "3.0.1",
+    "globals": "15.11.0"
   },
   "engines": {
     "node": ">=18.18.0"

@@ -8,6 +8,7 @@ import Login from '@/pages/public/Login';
 import Register from '@/pages/public/Register';
 import VerifyEmail from '@/pages/public/VerifyEmail';
 import VerifyRecoveryEmail from '@/pages/public/VerifyRecoveryEmail';
+import VerifyEmailChange from '@/pages/public/VerifyEmailChange';
 import SecurityRevokeSessions from '@/pages/public/SecurityRevokeSessions';
 import SecurityAcknowledgeAlert from '@/pages/public/SecurityAcknowledgeAlert';
 import ForgotPassword from '@/pages/public/ForgotPassword';
@@ -42,6 +43,8 @@ const router = createBrowserRouter([
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
       { path: 'verify-email', element: <VerifyEmail /> },
+      { path: 'verify-email-change', element: <VerifyEmailChange /> },
+      { path: 'auth/verify-email-change', element: <VerifyEmailChange /> },
       { path: 'verify-recovery-email', element: <VerifyRecoveryEmail /> },
       { path: 'security/revoke-sessions', element: <SecurityRevokeSessions /> },
       { path: 'security/acknowledge-alert', element: <SecurityAcknowledgeAlert /> },

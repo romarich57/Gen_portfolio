@@ -27,8 +27,10 @@
 
 ### entitlements
 - `user_id` (unique)
-- `projects_limit` (null = illimité)
-- `projects_used`
+- `ai_generations_limit` (null = illimité)
+- `ai_generations_used`
+- `github_exports_limit` (null = illimité)
+- `github_exports_used`
 - `period_start`, `period_end`
 
 ### webhook_events

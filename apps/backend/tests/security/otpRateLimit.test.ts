@@ -41,6 +41,14 @@ test('otp phone start rate limit blocks after threshold', async () => {
     .get(`/auth/email/verify?token=${encodeURIComponent(emailToken)}`)
     .set('Origin', 'http://localhost:3000');
   assert.equal(verifyRes.status, 200);
+  assert.ok(verifyRes.body.confirmation_token);
+
+  const confirmVerifyRes = await agent
+    .post('/auth/email/verify')
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', token)
+    .send({ confirmation_token: verifyRes.body.confirmation_token });
+  assert.equal(confirmVerifyRes.status, 200);
 
   const { token: loginCsrf } = await getCsrf(agent);
   const loginRes = await agent

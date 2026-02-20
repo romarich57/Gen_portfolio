@@ -1,5 +1,5 @@
 import { prisma } from '../db/prisma';
-import { AuthAttemptType } from '@prisma/client';
+import type { AuthAttemptType } from '@prisma/client';
 
 export async function recordAuthAttempt(params: {
   type: AuthAttemptType;

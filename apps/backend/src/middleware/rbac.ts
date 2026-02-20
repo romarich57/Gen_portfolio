@@ -22,7 +22,7 @@ function resolvePermissions(roles: string[] = []): string[] {
   return Array.from(permissions);
 }
 
-function requireAuth(req: Request, res: Response, next: NextFunction): void {
+async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   if (!req.user) {
     const token = req.cookies?.[ACCESS_COOKIE_NAME] as string | undefined;
     if (!token) {
@@ -32,32 +32,10 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
       });
       return;
     }
+
+    let payload: ReturnType<typeof verifyAccessToken>;
     try {
-      const payload = verifyAccessToken(token);
-      prisma.user
-        .findUnique({ where: { id: payload.sub } })
-        .then((user) => {
-          if (!user || user.status !== 'active' || user.deletedAt) {
-            res.status(403).json({
-              error: 'FORBIDDEN',
-              request_id: req.id
-            });
-            return;
-          }
-          req.user = {
-            id: user.id,
-            roles: user.roles as unknown as string[],
-            permissions: resolvePermissions(user.roles as unknown as string[])
-          };
-          next();
-        })
-        .catch(() => {
-          res.status(401).json({
-            error: 'AUTH_REQUIRED',
-            request_id: req.id
-          });
-        });
-      return;
+      payload = verifyAccessToken(token);
     } catch {
       res.status(401).json({
         error: 'AUTH_REQUIRED',
@@ -65,6 +43,32 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
       });
       return;
     }
+
+    try {
+      const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+      if (!user || user.status !== 'active' || user.deletedAt) {
+        res.status(403).json({
+          error: 'FORBIDDEN',
+          request_id: req.id
+        });
+        return;
+      }
+
+      req.user = {
+        id: user.id,
+        roles: user.roles as unknown as string[],
+        permissions: resolvePermissions(user.roles as unknown as string[])
+      };
+      next();
+    } catch {
+      res.status(401).json({
+        error: 'AUTH_REQUIRED',
+        request_id: req.id
+      });
+      return;
+    }
+
+    return;
   }
   next();
 }

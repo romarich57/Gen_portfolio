@@ -35,6 +35,7 @@ import { useAuth } from '@/app/providers/AuthBootstrap';
 import type { ApiError } from '@/api/http';
 import { useToast } from '@/components/common/ToastProvider';
 import { isProfileComplete } from '@/utils/profile';
+import { redirectToValidatedStripeUrl } from '@/utils/stripeRedirect';
 import { cn } from '@/lib/utils';
 import { OAuthProviderItem, SidebarItem } from './profile/ProfilePrimitives';
 import { useProfileUiState } from './profile/useProfileUiState';
@@ -293,7 +294,10 @@ function Profile() {
     setBillingErrorMsg(null);
     try {
       const { checkout_url } = await createCheckoutSession({ planCode });
-      window.location.assign(checkout_url);
+      const redirectResult = redirectToValidatedStripeUrl(checkout_url);
+      if (!redirectResult.ok) {
+        setBillingErrorMsg('URL de redirection Stripe invalide.');
+      }
     } catch {
       setBillingErrorMsg('Impossible de démarrer le paiement.');
     } finally {
@@ -306,7 +310,10 @@ function Profile() {
     setBillingErrorMsg(null);
     try {
       const { portal_url } = await createPortalSession();
-      window.location.assign(portal_url);
+      const redirectResult = redirectToValidatedStripeUrl(portal_url);
+      if (!redirectResult.ok) {
+        setBillingErrorMsg('URL de redirection Stripe invalide.');
+      }
     } catch {
       setBillingErrorMsg('Impossible d\'ouvrir le portail de gestion.');
     } finally {

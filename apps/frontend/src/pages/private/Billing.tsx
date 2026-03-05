@@ -9,6 +9,7 @@ import Loading from '@/components/common/Loading';
 import { createPortalSession, getBillingStatus, changePlan } from '@/api/billing';
 import type { ApiError } from '@/api/http';
 import { useAuth } from '@/app/providers/AuthBootstrap';
+import { redirectToValidatedStripeUrl } from '@/utils/stripeRedirect';
 
 const upgradeOptions = [
   {
@@ -31,6 +32,7 @@ const PLAN_LABELS: Record<'FREE' | 'PREMIUM' | 'VIP', string> = {
   PREMIUM: 'ELITE',
   VIP: 'VIP'
 };
+const STRIPE_REDIRECT_INVALID_MESSAGE = 'URL de redirection Stripe invalide.';
 
 /**
  * Billing page for plan management.
@@ -74,7 +76,10 @@ function Billing() {
       const response = await changePlan({ planCode: targetPlanCode });
 
       if (response.checkoutUrl) {
-        window.location.assign(response.checkoutUrl);
+        const redirectResult = redirectToValidatedStripeUrl(response.checkoutUrl);
+        if (!redirectResult.ok) {
+          setError(STRIPE_REDIRECT_INVALID_MESSAGE);
+        }
         return;
       }
 
@@ -128,7 +133,10 @@ function Billing() {
     setLoading(true);
     try {
       const response = await createPortalSession();
-      window.location.assign(response.portal_url);
+      const redirectResult = redirectToValidatedStripeUrl(response.portal_url);
+      if (!redirectResult.ok) {
+        setError(STRIPE_REDIRECT_INVALID_MESSAGE);
+      }
     } catch (err) {
       const apiError = err as unknown as ApiError;
       if (apiError.code === 'NETWORK_ERROR') {

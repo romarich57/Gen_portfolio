@@ -11,8 +11,9 @@ CSRF: `X-CSRF-Token` + Origin/Referer strict sur toutes les routes state‑chang
 - Rate limit dédié `/api/admin/*` (indépendant du limiter global):  
   - Read burst: `8 req / 10s` + read cooldown: `30 req / 60s`  
   - Write burst: `4 req / 10s` + write cooldown: `12 req / 60s`  
-  - Clé: `userId + IP + method + route`  
+  - Clé: `userId + IP + method + routePattern` (stable, non dépendant des IDs concrets dans l’URL)  
   - Dépassement: `429 RATE_LIMITED`
+- Namespace legacy `/admin/*` conservé en V1, mais protégé par le même limiter admin dédié (read/write burst + cooldown).
 
 ---
 

@@ -46,6 +46,9 @@ test('backup codes regenerate requires recent MFA', async () => {
 
   assert.equal(res.status, 200);
   assert.equal(res.body.backup_codes.length, 8);
+  for (const backupCode of res.body.backup_codes as string[]) {
+    assert.match(backupCode, /^[A-Za-z0-9_-]{11}$/);
+  }
 
   const count = await prisma.backupCode.count({ where: { userId: user.id } });
   assert.equal(count, 8);

@@ -3,24 +3,30 @@ import pinoHttp from 'pino-http';
 import type { IncomingMessage } from 'http';
 import { env } from '../config/env';
 
+const loggerRedactPaths = Object.freeze([
+  'req.headers.cookie',
+  'req.headers.authorization',
+  'req.headers["x-csrf-token"]',
+  'req.body.password',
+  'req.body.new_password',
+  'req.body.newPassword',
+  'req.body.password_confirmation',
+  'req.body.passwordConfirmation',
+  'req.body.token',
+  'req.body.refreshToken',
+  'req.body.confirmation_token',
+  'req.body.confirmationToken',
+  'req.body.otp',
+  'req.body.code',
+  'req.body.captchaToken',
+  'req.body.backupCode'
+]);
+
 const logger = pino({
   level: env.logLevel,
   timestamp: pino.stdTimeFunctions.isoTime,
   redact: {
-    paths: [
-      'req.headers.cookie',
-      'req.headers.authorization',
-      'req.headers["x-csrf-token"]',
-      'req.body.password',
-      'req.body.new_password',
-      'req.body.newPassword',
-      'req.body.token',
-      'req.body.refreshToken',
-      'req.body.otp',
-      'req.body.code',
-      'req.body.captchaToken',
-      'req.body.backupCode'
-    ],
+    paths: [...loggerRedactPaths],
     remove: true
   }
 });
@@ -51,4 +57,4 @@ const httpLogger = pinoHttp({
   }
 });
 
-export { logger, httpLogger };
+export { logger, httpLogger, loggerRedactPaths };

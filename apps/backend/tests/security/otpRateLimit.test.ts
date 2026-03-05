@@ -13,7 +13,7 @@ async function getCsrf(agent: request.SuperTest<request.Test>) {
   return { token: res.body.csrfToken as string };
 }
 
-test('otp phone start rate limit blocks after threshold', async () => {
+test('otp phone start rate limit blocks after threshold even when phone format varies', async () => {
   resetOtpRateLimitBuckets();
 
   const agent = request.agent(app);
@@ -60,7 +60,8 @@ test('otp phone start rate limit blocks after threshold', async () => {
 
   const { token: phoneCsrf } = await getCsrf(agent);
 
-  const validPhone = '+14155552671';
+  const validPhone = '+33612345678';
+  const alternateFormat = '+33 6 12 34 56 78';
   const first = await agent
     .post('/auth/phone/start')
     .set('Origin', 'http://localhost:3000')
@@ -72,7 +73,7 @@ test('otp phone start rate limit blocks after threshold', async () => {
     .post('/auth/phone/start')
     .set('Origin', 'http://localhost:3000')
     .set('X-CSRF-Token', phoneCsrf)
-    .send({ phoneE164: validPhone });
+    .send({ phoneE164: alternateFormat });
   assert.equal(second.status, 200);
 
   const blocked = await agent

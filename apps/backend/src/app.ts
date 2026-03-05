@@ -6,7 +6,7 @@ import { httpLogger } from './middleware/logger';
 import { helmetMiddleware, permissionsPolicy } from './middleware/securityHeaders';
 import { corsMiddleware } from './middleware/cors';
 import { csrfProtection } from './middleware/csrf';
-import { globalLimiter } from './middleware/rateLimit';
+import { adminApiLimiter, globalLimiter } from './middleware/rateLimit';
 import { attachTestUser } from './middleware/testAuth';
 import { errorHandler } from './middleware/errorHandler';
 import { onboardingGate } from './middleware/onboardingGate';
@@ -48,7 +48,7 @@ app.use('/api/admin', adminApiRouter);
 app.use(onboardingGate);
 app.use('/me', meRouter);
 app.use('/protected', protectedRouter);
-app.use('/admin', adminRouter);
+app.use('/admin', adminApiLimiter, adminRouter);
 app.use('/billing', billingRouter);
 app.use('/webhooks', webhookRouter);
 

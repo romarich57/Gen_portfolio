@@ -21,7 +21,7 @@ import { verifyPassword, hashPassword } from '../../../utils/password';
 import { signEmailChangeToken } from '../../../utils/jwt';
 import { env } from '../../../config/env';
 import { sendEmail, buildEmailHtml, buildEmailText } from '../../../services/email';
-import { hashToken, generateRandomToken, hashBackupCode } from '../../../utils/crypto';
+import { hashToken, generateRandomToken, hashBackupCode, generateBackupCode } from '../../../utils/crypto';
 import { REFRESH_COOKIE_NAME } from '../../../config/auth';
 import {
   clearAuthCookies,
@@ -756,7 +756,7 @@ securityRouter.post('/mfa/backup-codes/regenerate', requireAuth, async (req, res
     return;
   }
 
-  const backupCodes = Array.from({ length: 8 }, () => generateRandomToken(8));
+  const backupCodes = Array.from({ length: 8 }, () => generateBackupCode());
   const backupCodeHashes = backupCodes.map((codeValue) => ({
     userId,
     codeHash: hashBackupCode(codeValue)

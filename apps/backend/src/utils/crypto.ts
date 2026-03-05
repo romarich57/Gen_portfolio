@@ -3,9 +3,14 @@ import { env } from '../config/env';
 
 const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
+const BACKUP_CODE_BYTES = 8;
 
 export function generateRandomToken(bytes = 32): string {
   return randomBytes(bytes).toString('base64url');
+}
+
+export function generateBackupCode(): string {
+  return generateRandomToken(BACKUP_CODE_BYTES);
 }
 
 export function hashToken(token: string): string {

@@ -19,6 +19,9 @@ Etapes:
 # Generer des certificats auto-signes
 ./ops/scripts/generate-certs.sh
 
+# Generer les certificats Redis TLS (stunnel) si vous testez le mode rediss/stunnel
+./ops/scripts/generate-redis-certs.sh
+
 # Lancer toute la stack
 docker compose -f docker-compose.dev.yml up
 ```
@@ -112,3 +115,4 @@ npm run dev
 ## 5) Notes
 - Le navigateur affichera un avertissement pour certificat auto-signe.
 - Pour eviter l'avertissement, utiliser un certificat local de confiance (ex: mkcert).
+- Les certs Redis TLS sous `ops/redis/certs` sont locaux et ne doivent jamais etre commit.

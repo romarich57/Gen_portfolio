@@ -11,6 +11,9 @@ build
 # SSL certificates
 ops/certs/
 apps/backend/certs/
+ops/redis/certs/*.pem
+ops/redis/certs/*.crt
+!ops/redis/certs/.gitkeep
 
 # Build artifacts
 *.tsbuildinfo

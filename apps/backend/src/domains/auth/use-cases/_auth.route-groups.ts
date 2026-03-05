@@ -1,4 +1,4 @@
-import { Router, type Request } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { authRepository } from '../auth.repository';
 import { env } from '../../../config/env';
@@ -35,7 +35,7 @@ import { verifyCaptchaToken } from '../../../services/captcha';
 import { recordAuthAttempt, countRecentFailures } from '../../../services/authAttempts';
 import { createSession, rotateSession, revokeAllSessions, revokeSession } from '../../../services/session';
 import { maybeSendLoginAlert } from '../../../services/securityAlerts';
-import { generateRandomToken, hashToken, encryptSecret, decryptSecret, hashBackupCode } from '../../../utils/crypto';
+import { generateRandomToken, hashToken, encryptSecret, decryptSecret, hashBackupCode, generateBackupCode } from '../../../utils/crypto';
 import {
   hashPassword,
   verifyPassword
@@ -52,6 +52,7 @@ import { normalizeEmail, normalizeUsername } from '../../../utils/normalize';
 import { buildOAuthStart, exchangeOAuthCode, fetchOAuthProfile, getOAuthRedirectUri } from '../../../services/oauth';
 import { getOtpRateLimits } from '../../../services/settings';
 import { getMfaPolicy, isMfaRequired } from '../../../services/mfaPolicy';
+import { getMfaProtectionState, recordMfaFailure, clearMfaFailures } from '../../../services/mfaProtection';
 import { AuthAttemptType, UserStatus, Prisma } from '@prisma/client';
 
 const registerRouter = Router();
@@ -141,11 +142,13 @@ async function resolveDefaultCountry(userId: string, requested?: string, acceptL
 }
 
 const mfaSetupConfirmSchema = z.object({
-  code: z.string().min(6).max(8)
+  code: z.string().regex(/^\d{6,8}$/),
+  captchaToken: z.string().optional()
 });
 
 const mfaVerifySchema = z.object({
-  code: z.string().min(6).max(8)
+  code: z.string().min(6).max(11).regex(/^[A-Za-z0-9_-]+$/),
+  captchaToken: z.string().optional()
 });
 
 const oauthProviderSchema = z.enum(['google', 'github']);
@@ -160,6 +163,76 @@ const resendLimiter = buildRateLimiter({ windowMs: 60 * 1000, limit: 3, keyGener
 const refreshLimiter = buildRateLimiter({ windowMs: 60 * 1000, limit: 10 });
 const phoneStartLimiter = buildOtpRateLimiter('phoneStart');
 const phoneCheckLimiter = buildOtpRateLimiter('phoneCheck');
+const mfaVerifyIpLimiter = buildRateLimiter({ windowMs: 60 * 1000, limit: 10, keyGenerator: ipOnly });
+const mfaSetupConfirmIpLimiter = buildRateLimiter({ windowMs: 60 * 1000, limit: 10, keyGenerator: ipOnly });
+
+function resolveMfaActorId(req: Request): string {
+  const accessToken = req.cookies?.[ACCESS_COOKIE_NAME] as string | undefined;
+  if (accessToken) {
+    try {
+      const payload = verifyAccessToken(accessToken);
+      if (payload.sub) return payload.sub;
+    } catch {
+      // Ignore invalid access token in limiter key generation.
+    }
+  }
+
+  const onboardingToken = req.cookies?.[ONBOARDING_COOKIE_NAME] as string | undefined;
+  if (onboardingToken) {
+    try {
+      const payload = verifyChallengeToken(onboardingToken);
+      if (payload.type === 'onboarding' && payload.stage === 'mfa') {
+        return payload.sub;
+      }
+    } catch {
+      // Ignore invalid onboarding token in limiter key generation.
+    }
+  }
+
+  const mfaChallengeToken = req.cookies?.[MFA_CHALLENGE_COOKIE_NAME] as string | undefined;
+  if (mfaChallengeToken) {
+    try {
+      const payload = verifyChallengeToken(mfaChallengeToken);
+      if (payload.type === 'mfa') {
+        return payload.sub;
+      }
+    } catch {
+      // Ignore invalid challenge token in limiter key generation.
+    }
+  }
+
+  return 'anon';
+}
+
+const mfaAccountLimiterKey = (req: Request) => {
+  const route = `${req.baseUrl}${req.path}`;
+  return `${route}|${resolveMfaActorId(req)}`;
+};
+
+const mfaVerifyAccountLimiter = buildRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 10,
+  keyGenerator: mfaAccountLimiterKey
+});
+
+const mfaSetupConfirmAccountLimiter = buildRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 10,
+  keyGenerator: mfaAccountLimiterKey
+});
+
+function respondMfaLockout(res: Response, requestId: string, retryAfterSeconds: number): void {
+  res.status(429).json({
+    error: 'MFA_TEMP_LOCKED',
+    retry_after_seconds: retryAfterSeconds,
+    captcha_required: true,
+    request_id: requestId
+  });
+}
+
+function hashIdentifierForAudit(identifier: string): string {
+  return hashToken(identifier.trim().toLowerCase());
+}
 
 function getRequestMeta(req: Request) {
   return {
@@ -525,7 +598,7 @@ loginRouter.post('/login', loginIpLimiter, loginAccountLimiter, async (req, res)
       action: 'LOGIN_FAIL',
       targetType: 'user',
       targetId: user?.id ?? null,
-      metadata: { identifier: identifierRaw, reason: 'USER_NOT_FOUND_OR_BANNED' },
+      metadata: { identifier_hash: hashIdentifierForAudit(identifierRaw), reason: 'USER_NOT_FOUND_OR_BANNED' },
       requestId: req.id
     });
     res.status(401).json({ error: 'INVALID_CREDENTIALS', request_id: req.id });
@@ -548,7 +621,7 @@ loginRouter.post('/login', loginIpLimiter, loginAccountLimiter, async (req, res)
       action: 'LOGIN_FAIL',
       targetType: 'user',
       targetId: user.id,
-      metadata: { identifier: identifierRaw, reason: 'PASSWORD_INVALID' },
+      metadata: { identifier_hash: hashIdentifierForAudit(identifierRaw), reason: 'PASSWORD_INVALID' },
       requestId: req.id
     });
     res.status(401).json({ error: 'INVALID_CREDENTIALS', request_id: req.id });
@@ -1656,7 +1729,7 @@ mfaRouter.post('/mfa/setup/start', async (req, res) => {
   res.json({ otpauthUrl, request_id: req.id });
 });
 
-mfaRouter.post('/mfa/setup/confirm', async (req, res) => {
+mfaRouter.post('/mfa/setup/confirm', mfaSetupConfirmIpLimiter, mfaSetupConfirmAccountLimiter, async (req, res) => {
   const accessToken = req.cookies?.[ACCESS_COOKIE_NAME] as string | undefined;
   let userId: string | null = null;
 
@@ -1699,6 +1772,22 @@ mfaRouter.post('/mfa/setup/confirm', async (req, res) => {
     return;
   }
 
+  const protectionState = await getMfaProtectionState('setup_confirm', userId);
+  if (protectionState.locked) {
+    respondMfaLockout(res, req.id, protectionState.retryAfterSeconds);
+    return;
+  }
+
+  if (protectionState.captchaRequired) {
+    const captchaValid =
+      Boolean(parseResult.data.captchaToken) &&
+      (await verifyCaptchaToken(parseResult.data.captchaToken, req.ip ?? undefined));
+    if (!captchaValid) {
+      res.status(403).json({ error: 'CAPTCHA_REQUIRED', captcha_required: true, request_id: req.id });
+      return;
+    }
+  }
+
   const { code } = parseResult.data;
   const factor = await authRepository.mfaFactor.findFirst({
     where: { userId, enabledAt: null },
@@ -1713,11 +1802,18 @@ mfaRouter.post('/mfa/setup/confirm', async (req, res) => {
   const secret = decryptSecret(factor.secretEncrypted);
   const valid = verifyTotpCode(code, secret);
   if (!valid) {
+    const failureState = await recordMfaFailure('setup_confirm', userId);
+    if (failureState.locked) {
+      respondMfaLockout(res, req.id, failureState.retryAfterSeconds);
+      return;
+    }
     res.status(400).json({ error: 'MFA_CODE_INVALID', request_id: req.id });
     return;
   }
 
-  const backupCodes = Array.from({ length: 8 }, () => generateRandomToken(8));
+  await clearMfaFailures('setup_confirm', userId);
+
+  const backupCodes = Array.from({ length: 8 }, () => generateBackupCode());
   const backupCodeHashes = backupCodes.map((codeValue) => ({
     userId,
     codeHash: hashBackupCode(codeValue)
@@ -1766,7 +1862,7 @@ mfaRouter.post('/mfa/setup/confirm', async (req, res) => {
   res.json({ backupCodes, request_id: req.id });
 });
 
-mfaRouter.post('/mfa/verify', async (req, res) => {
+mfaRouter.post('/mfa/verify', mfaVerifyIpLimiter, mfaVerifyAccountLimiter, async (req, res) => {
   const token = req.cookies?.[MFA_CHALLENGE_COOKIE_NAME] as string | undefined;
   if (!token) {
     res.status(401).json({ error: 'MFA_CHALLENGE_REQUIRED', request_id: req.id });
@@ -1792,7 +1888,24 @@ mfaRouter.post('/mfa/verify', async (req, res) => {
     return;
   }
 
+  const protectionState = await getMfaProtectionState('verify', payload.sub);
+  if (protectionState.locked) {
+    respondMfaLockout(res, req.id, protectionState.retryAfterSeconds);
+    return;
+  }
+
+  if (protectionState.captchaRequired) {
+    const captchaValid =
+      Boolean(parseResult.data.captchaToken) &&
+      (await verifyCaptchaToken(parseResult.data.captchaToken, req.ip ?? undefined));
+    if (!captchaValid) {
+      res.status(403).json({ error: 'CAPTCHA_REQUIRED', captcha_required: true, request_id: req.id });
+      return;
+    }
+  }
+
   const { code } = parseResult.data;
+  const normalizedCode = code.trim();
   const factor = await authRepository.mfaFactor.findFirst({
     where: { userId: payload.sub, enabledAt: { not: null } },
     orderBy: { createdAt: 'desc' }
@@ -1804,23 +1917,32 @@ mfaRouter.post('/mfa/verify', async (req, res) => {
   }
 
   const secret = decryptSecret(factor.secretEncrypted);
-  const valid = verifyTotpCode(code, secret);
+  const valid = /^\d{6,8}$/.test(normalizedCode) ? verifyTotpCode(normalizedCode, secret) : false;
   if (!valid) {
-    const backupHash = hashBackupCode(code);
-    const backup = await authRepository.backupCode.findFirst({
-      where: { userId: payload.sub, codeHash: backupHash, usedAt: null }
-    });
+    const isBackupCodeFormat = /^[A-Za-z0-9_-]{11}$/.test(normalizedCode);
+    let backup = null as Awaited<ReturnType<typeof authRepository.backupCode.findFirst>>;
+    if (isBackupCodeFormat) {
+      const backupHash = hashBackupCode(normalizedCode);
+      backup = await authRepository.backupCode.findFirst({
+        where: { userId: payload.sub, codeHash: backupHash, usedAt: null }
+      });
+    }
 
     if (!backup) {
+      const failureState = await recordMfaFailure('verify', payload.sub);
       await writeAuditLog({
         actorUserId: payload.sub,
         actorIp: req.ip ?? null,
         action: 'MFA_CHALLENGE_FAIL',
         targetType: 'user',
         targetId: payload.sub,
-        metadata: {},
+        metadata: { lockout: failureState.locked },
         requestId: req.id
       });
+      if (failureState.locked) {
+        respondMfaLockout(res, req.id, failureState.retryAfterSeconds);
+        return;
+      }
       res.status(400).json({ error: 'MFA_CODE_INVALID', request_id: req.id });
       return;
     }
@@ -1830,6 +1952,8 @@ mfaRouter.post('/mfa/verify', async (req, res) => {
       data: { usedAt: new Date() }
     });
   }
+
+  await clearMfaFailures('verify', payload.sub);
 
   await authRepository.mfaFactor.update({
     where: { id: factor.id },

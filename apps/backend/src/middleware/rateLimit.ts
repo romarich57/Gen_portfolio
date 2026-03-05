@@ -54,11 +54,47 @@ function resolveRequestUserId(req: Request): string {
   }
 }
 
+const UUID_SEGMENT_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const INTEGER_SEGMENT_PATTERN = /^\d+$/;
+const OBJECT_ID_SEGMENT_PATTERN = /^[a-f0-9]{24}$/i;
+const OPAQUE_ID_SEGMENT_PATTERN = /^[A-Za-z0-9_-]{16,}$/;
+
+function decodePathSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+function normalizeDynamicSegments(path: string): string {
+  return path
+    .split('/')
+    .map((segment) => {
+      if (!segment) return segment;
+      const decodedSegment = decodePathSegment(segment);
+      if (UUID_SEGMENT_PATTERN.test(decodedSegment)) return ':id';
+      if (INTEGER_SEGMENT_PATTERN.test(decodedSegment)) return ':id';
+      if (OBJECT_ID_SEGMENT_PATTERN.test(decodedSegment)) return ':id';
+      if (OPAQUE_ID_SEGMENT_PATTERN.test(decodedSegment)) return ':id';
+      return segment;
+    })
+    .join('/');
+}
+
+function resolveAdminRoutePattern(req: Request): string {
+  const baseUrl = req.baseUrl || '';
+  if (typeof req.route?.path === 'string') {
+    return `${baseUrl}${req.route.path}`;
+  }
+  return `${baseUrl}${normalizeDynamicSegments(req.path || '')}`;
+}
+
 function adminKeyGenerator(req: Request): string {
-  const route = `${req.baseUrl}${req.path}`;
+  const routePattern = resolveAdminRoutePattern(req);
   const ipKey = ipKeyGenerator(req.ip || '0.0.0.0');
   const actor = resolveRequestUserId(req);
-  return [actor, ipKey, req.method, route].join('|');
+  return [actor, ipKey, req.method, routePattern].join('|');
 }
 
 function rateLimitHandler(

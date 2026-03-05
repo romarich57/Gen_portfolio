@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Button from '@/components/ui/Button';
@@ -23,7 +23,16 @@ function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const token = searchParams.get('token');
+  const [token] = useState(() => searchParams.get('token'));
+
+  useEffect(() => {
+    if (!token) return;
+    const nextQuery = new URLSearchParams(searchParams);
+    nextQuery.delete('token');
+    const queryString = nextQuery.toString();
+    const nextUrl = `${window.location.pathname}${queryString ? `?${queryString}` : ''}${window.location.hash}`;
+    window.history.replaceState({}, document.title, nextUrl);
+  }, [token, searchParams]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

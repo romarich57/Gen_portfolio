@@ -122,3 +122,45 @@ test('otp limiter uses Redis counter and blocks when limit is exceeded', async (
   assert.equal(redisCalls[0][3], `otp_rl:v2:phoneStart:actor:127.0.0.1:anon:${phoneHash}`);
   assert.equal(redisCalls[1][3], `otp_rl:v2:phoneStart:target:${phoneHash}`);
 });
+
+test('otp limiter canonicalizes equivalent phone formats into the same keys', async () => {
+  resetOtpRateLimitBuckets();
+  const redisCalls: [string, ...string[]][] = [];
+  const limiter = buildOtpRateLimiter('phoneStart', {
+    getLimits: async () => OTP_LIMITS,
+    getRedisClient: () => ({
+      sendCommand: async (args: [string, ...string[]]) => {
+        redisCalls.push(args);
+        return 1;
+      }
+    }),
+    isProduction: true,
+    isTest: false,
+    warn: () => undefined
+  });
+
+  const requestA = createReq();
+  requestA.body = { phoneE164: '+33 6 12 34 56 78' };
+  const responseA = createRes();
+  await limiter(requestA, responseA.res, () => undefined);
+  assert.equal(responseA.state.statusCode, 200);
+
+  const requestB = createReq();
+  requestB.body = { phoneE164: '+33612345678' };
+  const responseB = createRes();
+  await limiter(requestB, responseB.res, () => undefined);
+  assert.equal(responseB.state.statusCode, 200);
+
+  assert.equal(redisCalls.length, 4);
+  const actorKeyA = redisCalls[0][3];
+  const targetKeyA = redisCalls[1][3];
+  const actorKeyB = redisCalls[2][3];
+  const targetKeyB = redisCalls[3][3];
+  assert.equal(actorKeyA, actorKeyB);
+  assert.equal(targetKeyA, targetKeyB);
+  assert.ok(actorKeyA.startsWith('otp_rl:v2:phoneStart:actor:'));
+  assert.ok(targetKeyA.startsWith('otp_rl:v2:phoneStart:target:'));
+
+  const canonicalHash = hashToken('+33612345678');
+  assert.equal(targetKeyA, `otp_rl:v2:phoneStart:target:${canonicalHash}`);
+});

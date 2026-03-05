@@ -6,6 +6,7 @@ import { logger } from './logger';
 import { ACCESS_COOKIE_NAME, ONBOARDING_COOKIE_NAME } from '../config/auth';
 import { verifyAccessToken, verifyChallengeToken } from '../utils/jwt';
 import { hashToken } from '../utils/crypto';
+import { normalizeCountryCode, normalizePhoneE164 } from '../utils/phone';
 
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
@@ -65,10 +66,30 @@ function getActorId(req: Request): string {
   return 'anon';
 }
 
-function getPhoneHash(req: Request): string {
+function canonicalizePhoneForRateLimit(req: Request): string {
   const rawPhone = typeof req.body?.phoneE164 === 'string' ? req.body.phoneE164.trim() : '';
-  if (!rawPhone) return 'no_phone';
-  return hashToken(rawPhone);
+  if (!rawPhone) return '';
+
+  const country = typeof req.body?.country === 'string' ? normalizeCountryCode(req.body.country) : null;
+  const normalized = country
+    ? normalizePhoneE164(rawPhone, { defaultCountry: country })
+    : normalizePhoneE164(rawPhone);
+  if (normalized) {
+    return normalized.normalized;
+  }
+
+  const stripped = rawPhone.replace(/[^\d+]/g, '');
+  if (!stripped) return '';
+  if (stripped.startsWith('00')) {
+    return `+${stripped.slice(2)}`;
+  }
+  return stripped;
+}
+
+function getPhoneHash(req: Request): string {
+  const canonicalPhone = canonicalizePhoneForRateLimit(req);
+  if (!canonicalPhone) return 'no_phone';
+  return hashToken(canonicalPhone);
 }
 
 function cleanupExpired(now: number) {

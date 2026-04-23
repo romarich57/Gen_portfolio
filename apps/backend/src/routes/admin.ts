@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { adminRepository } from '../domains/admin/admin.repository';
 import { requireAuth, requireRole } from '../middleware/rbac';
 import { writeAuditLog } from '../services/audit';
 import { refreshServiceStatus, getServiceStatusHistory } from '../services/serviceStatus';
 import { resetMfaPolicyCache } from '../services/mfaPolicy';
 import { logger } from '../middleware/logger';
 import { getOtpRateLimits, resetOtpRateLimitsCache } from '../services/settings';
+import {
+  getAdminMfaFlags,
+  setUserMfaOverride,
+  updateAdminOtpRateLimits,
+  upsertAdminFlag
+} from '../modules/admin/services/platform-settings.service';
 
 const router = Router();
 
@@ -39,23 +44,12 @@ const mfaOverrideSchema = z.object({
   required: z.boolean().nullable()
 });
 
-async function upsertFlag(key: string, value: boolean) {
-  return adminRepository.featureFlag.upsert({
-    where: { key },
-    update: { valueBoolean: value },
-    create: { key, valueBoolean: value }
-  });
-}
-
 router.get('/security/mfa-flags', async (req, res) => {
-  const [globalFlag, allowDisableFlag] = await Promise.all([
-    adminRepository.featureFlag.findUnique({ where: { key: 'mfa_required_global' } }),
-    adminRepository.featureFlag.findUnique({ where: { key: 'allow_disable_mfa' } })
-  ]);
+  const flags = await getAdminMfaFlags();
 
   res.json({
-    mfaRequiredGlobal: globalFlag?.valueBoolean ?? false,
-    allowDisableMfa: allowDisableFlag?.valueBoolean ?? true,
+    mfaRequiredGlobal: flags.mfaRequiredGlobal,
+    allowDisableMfa: flags.allowDisableMfa,
     request_id: req.id
   });
 });
@@ -71,12 +65,12 @@ router.put('/security/mfa-flags', async (req, res) => {
   const updates: Record<string, boolean> = {};
 
   if (mfaRequiredGlobal !== undefined) {
-    await upsertFlag('mfa_required_global', mfaRequiredGlobal);
+    await upsertAdminFlag('mfa_required_global', mfaRequiredGlobal);
     updates.mfa_required_global = mfaRequiredGlobal;
   }
 
   if (allowDisableMfa !== undefined) {
-    await upsertFlag('allow_disable_mfa', allowDisableMfa);
+    await upsertAdminFlag('allow_disable_mfa', allowDisableMfa);
     updates.allow_disable_mfa = allowDisableMfa;
   }
 
@@ -107,11 +101,7 @@ router.put('/security/otp-rate-limits', async (req, res) => {
     return;
   }
 
-  await adminRepository.appSetting.upsert({
-    where: { key: 'otp_rate_limits' },
-    update: { valueJson: parseResult.data },
-    create: { key: 'otp_rate_limits', valueJson: parseResult.data }
-  });
+  await updateAdminOtpRateLimits(parseResult.data);
   resetOtpRateLimitsCache();
 
   await writeAuditLog({
@@ -134,23 +124,28 @@ router.patch('/users/:id/mfa-override', async (req, res) => {
     return;
   }
 
-  const user = await adminRepository.user.findUnique({ where: { id: req.params.id } });
-  if (!user) {
-    res.status(404).json({ error: 'NOT_FOUND', request_id: req.id });
+  const userId = typeof req.params.id === 'string' ? req.params.id : null;
+  if (!userId) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
     return;
   }
 
-  await adminRepository.user.update({
-    where: { id: user.id },
-    data: { mfaRequiredOverride: parseResult.data.required }
-  });
+  try {
+    await setUserMfaOverride(userId, parseResult.data.required);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NOT_FOUND') {
+      res.status(404).json({ error: 'NOT_FOUND', request_id: req.id });
+      return;
+    }
+    throw error;
+  }
 
   await writeAuditLog({
     actorUserId: req.user?.id ?? null,
     actorIp: req.ip ?? null,
     action: 'ADMIN_USER_MFA_OVERRIDE',
     targetType: 'user',
-    targetId: user.id,
+    targetId: userId,
     metadata: { required: parseResult.data.required },
     requestId: req.id
   });

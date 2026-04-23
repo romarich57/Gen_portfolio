@@ -11,14 +11,14 @@ import { attachTestUser } from './middleware/testAuth';
 import { errorHandler } from './middleware/errorHandler';
 import { onboardingGate } from './middleware/onboardingGate';
 import { healthRouter } from './routes/health';
-import { authRouter } from './routes/auth';
+import { authRouter } from './routes/auth/router';
 import { protectedRouter } from './routes/protected';
 import { testRouter } from './routes/test';
 import { adminRouter } from './routes/admin';
-import { adminApiRouter } from './routes/adminApi';
+import { adminApiRouter } from './routes/adminApi/router';
 import { billingRouter } from './routes/billing';
-import { webhookRouter } from './routes/webhooks';
-import { meRouter } from './routes/me';
+import { webhookRouter } from './routes/webhooks/router';
+import { meRouter } from './routes/me/router';
 
 const app = express();
 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const usersQuerySchema = z.object({
-  q: z.string().optional(),
+  q: z.string().max(100).optional(),
   role: z.enum(['user', 'premium', 'vip', 'admin', 'super_admin']).optional(),
   status: z.string().optional(),
   created_from: z.string().optional(),
@@ -11,8 +11,8 @@ export const usersQuerySchema = z.object({
 });
 
 export const revealSchema = z.object({
-  fields: z.array(z.string()).min(1),
-  confirm: z.string()
+  fields: z.array(z.string().min(1).max(64)).min(1).max(20),
+  confirm: z.string().min(1).max(32)
 });
 
 export const roleSchema = z.object({

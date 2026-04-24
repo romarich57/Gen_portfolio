@@ -7,6 +7,8 @@ process.env.TRUST_PROXY = '0';
 process.env.ACCESS_TOKEN_SECRET = 'test_access_secret';
 process.env.REFRESH_TOKEN_SECRET = 'test_refresh_secret';
 process.env.MFA_CHALLENGE_SECRET = 'test_mfa_challenge_secret';
+process.env.EMAIL_CHANGE_SECRET = 'test_email_change_secret';
+process.env.ACTION_CONFIRMATION_SECRET = 'test_action_confirmation_secret';
 process.env.TOKEN_HASH_SECRET = 'test_token_hash_secret';
 process.env.BACKUP_CODE_PEPPER = 'test_backup_code_pepper';
 process.env.MFA_MASTER_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';

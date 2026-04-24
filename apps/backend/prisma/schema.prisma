@@ -176,6 +176,8 @@ model User {
   mfaFactors          MfaFactor[]
   backupCodes         BackupCode[]
   recoveryEmailTokens RecoveryEmailToken[]
+  emailChangeRequests EmailChangeRequest[]
+  oauthLinkRequests   OAuthLinkRequest[]
   securityActionTokens SecurityActionToken[]
   authAttempts        AuthAttempt[]
   stripeCustomer      StripeCustomer?
@@ -191,6 +193,46 @@ model User {
   avatarFile          File?    @relation("UserAvatar", fields: [avatarFileId], references: [id])
 
   @@map("users")
+}
+
+model EmailChangeRequest {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  oldEmail        String    @map("old_email")
+  newEmail        String    @map("new_email")
+  verifyTokenHash String    @unique @map("verify_token_hash")
+  cancelTokenHash String    @unique @map("cancel_token_hash")
+  requestedIp     String?   @map("requested_ip")
+  expiresAt       DateTime  @map("expires_at")
+  cancelledAt     DateTime? @map("cancelled_at")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "email_change_requests_user_id_idx")
+  @@index([expiresAt], name: "email_change_requests_expires_at_idx")
+  @@map("email_change_requests")
+}
+
+model OAuthLinkRequest {
+  id             String        @id @default(cuid())
+  userId         String        @map("user_id")
+  provider       OAuthProvider
+  providerUserId String        @map("provider_user_id")
+  emailAtProvider String       @map("email_at_provider")
+  tokenHash      String        @unique @map("token_hash")
+  requestedIp    String?       @map("requested_ip")
+  expiresAt      DateTime      @map("expires_at")
+  completedAt    DateTime?     @map("completed_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId], name: "oauth_link_requests_provider_provider_user_id_key")
+  @@index([userId], name: "oauth_link_requests_user_id_idx")
+  @@index([expiresAt], name: "oauth_link_requests_expires_at_idx")
+  @@map("oauth_link_requests")
 }
 
 model SecurityActionToken {

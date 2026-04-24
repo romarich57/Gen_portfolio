@@ -6,6 +6,11 @@ import '../setupEnv';
 import '../helpers/db';
 import { app } from '../../src/app';
 import { prisma } from '../../src/db/prisma';
+import { UserStatus } from '@prisma/client';
+
+function hasLiveSessionCookie(cookies: string[] | undefined, name: 'access_token' | 'refresh_token') {
+    return (cookies ?? []).some((cookie) => new RegExp(`^${name}=[^;]+`).test(cookie) && !cookie.startsWith(`${name}=;`));
+}
 
 describe('OAuth Flow (GitHub)', () => {
     let fetchMock: any;
@@ -148,5 +153,84 @@ describe('OAuth Flow (GitHub)', () => {
         const user = await prisma.user.findUnique({ where: { email: 'unverified@example.com' } });
         assert.ok(user);
         assert.equal(user?.emailVerifiedAt, null);
+    });
+
+    test('GET /auth/oauth/github/callback requires email-owner approval on collision', async () => {
+        await prisma.user.create({
+            data: {
+                email: 'githubuser@example.com',
+                status: UserStatus.active,
+                emailVerifiedAt: new Date(),
+                roles: ['user']
+            }
+        });
+
+        const agent = request.agent(app);
+        const startAgentRes = await agent.get('/auth/oauth/github/start');
+        const redirectUrl = new URL(startAgentRes.header.location);
+        const stateParam = redirectUrl.searchParams.get('state');
+
+        const callbackRes = await agent
+            .get('/auth/oauth/github/callback')
+            .query({ code: 'mock_gh_code', state: stateParam });
+
+        assert.equal(callbackRes.status, 302);
+        assert.ok(callbackRes.header.location.includes('status=error'));
+        assert.ok(callbackRes.header.location.includes('reason=link_confirmation_required'));
+        assert.ok(!hasLiveSessionCookie(callbackRes.headers['set-cookie'] as string[] | undefined, 'access_token'));
+        assert.ok(!hasLiveSessionCookie(callbackRes.headers['set-cookie'] as string[] | undefined, 'refresh_token'));
+
+        const linkRequest = await prisma.oAuthLinkRequest.findFirst({
+            where: { emailAtProvider: 'githubuser@example.com', provider: 'github' }
+        });
+        assert.ok(linkRequest);
+
+        const linkedAccount = await prisma.oAuthAccount.findFirst({
+            where: { provider: 'github', providerUserId: '123456' }
+        });
+        assert.equal(linkedAccount, null);
+    });
+
+    test('GET /auth/oauth/github/callback sets onboarding token instead of session when MFA setup is required', async () => {
+        const user = await prisma.user.create({
+            data: {
+                email: 'githubuser@example.com',
+                status: UserStatus.active,
+                emailVerifiedAt: new Date(),
+                roles: ['user'],
+                onboardingCompletedAt: new Date(),
+                firstName: 'Git',
+                lastName: 'Hub',
+                username: `github_${Date.now()}`,
+                nationality: 'FR'
+            }
+        });
+        await prisma.featureFlag.create({
+            data: { key: 'mfa_required_global', valueBoolean: true }
+        });
+        await prisma.oAuthAccount.create({
+            data: {
+                provider: 'github',
+                providerUserId: '123456',
+                userId: user.id,
+                emailAtProvider: user.email
+            }
+        });
+
+        const agent = request.agent(app);
+        const startAgentRes = await agent.get('/auth/oauth/github/start');
+        const redirectUrl = new URL(startAgentRes.header.location);
+        const stateParam = redirectUrl.searchParams.get('state');
+
+        const callbackRes = await agent
+            .get('/auth/oauth/github/callback')
+            .query({ code: 'mock_gh_code', state: stateParam });
+
+        assert.equal(callbackRes.status, 302);
+        assert.ok(callbackRes.header.location.includes('next=setup-mfa'));
+        const cookies = callbackRes.headers['set-cookie'] as string[] | undefined;
+        assert.ok((cookies ?? []).some((cookie) => cookie.startsWith('onboarding_token=')));
+        assert.ok(!hasLiveSessionCookie(cookies, 'access_token'));
+        assert.ok(!hasLiveSessionCookie(cookies, 'refresh_token'));
     });
 });

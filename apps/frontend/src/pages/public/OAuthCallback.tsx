@@ -22,6 +22,7 @@ function OAuthCallback() {
     google?: { redirect_uri: string; client_id: string };
     github?: { redirect_uri: string; client_id: string };
   } | null>(null);
+  const errorReason = searchParams.get('reason');
 
   useEffect(() => {
     const next = searchParams.get('next');
@@ -42,7 +43,11 @@ function OAuthCallback() {
         const refreshed = await refreshUser();
         if (!refreshed) {
           setStatus('error');
-          setError('Impossible de finaliser la connexion.');
+          setError(
+            errorReason === 'link_confirmation_required'
+              ? 'Confirmez la liaison OAuth depuis le lien envoye par email avant de vous reconnecter.'
+              : 'Impossible de finaliser la connexion.'
+          );
           return;
         }
         if (!isProfileComplete(refreshed)) {
@@ -57,7 +62,7 @@ function OAuthCallback() {
     };
 
     run();
-  }, [refreshUser, searchParams, navigate]);
+  }, [errorReason, refreshUser, searchParams, navigate]);
 
   useEffect(() => {
     if (status !== 'ready') return;
@@ -69,10 +74,14 @@ function OAuthCallback() {
 
     const explicitStatus = searchParams.get('status');
     if (explicitStatus === 'error') {
-      setError('Connexion OAuth echouee.');
+      setError(
+        errorReason === 'link_confirmation_required'
+          ? 'Confirmation email requise avant de lier ce provider OAuth.'
+          : 'Connexion OAuth echouee.'
+      );
       setStatus('error');
     }
-  }, [status, user, navigate, searchParams]);
+  }, [errorReason, status, user, navigate, searchParams]);
 
   useEffect(() => {
     if (status !== 'error') return;

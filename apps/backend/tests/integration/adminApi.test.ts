@@ -14,6 +14,18 @@ async function getCsrf(agent: request.SuperTest<request.Test>) {
   return res.body.csrfToken as string;
 }
 
+async function addRecentMfaFactor(userId: string) {
+  await prisma.mfaFactor.create({
+    data: {
+      userId,
+      type: 'totp',
+      secretEncrypted: 'test-secret',
+      enabledAt: new Date(),
+      lastUsedAt: new Date()
+    }
+  });
+}
+
 test('admin authz denies non-admin', async () => {
   const user = await prisma.user.create({
     data: {
@@ -93,6 +105,7 @@ test('reveal sensitive requires confirmation and audits', async () => {
       emailVerifiedAt: new Date()
     }
   });
+  await addRecentMfaFactor(admin.id);
 
   const agent = request.agent(app);
   const csrf = await getCsrf(agent);
@@ -120,6 +133,41 @@ test('reveal sensitive requires confirmation and audits', async () => {
 
   const audit = await prisma.auditLog.findFirst({ where: { action: 'ADMIN_REVEAL_SENSITIVE' } });
   assert.ok(audit);
+});
+
+test('admin sensitive mutation is blocked without recent MFA', async () => {
+  const admin = await prisma.user.create({
+    data: {
+      email: 'admin-step-up@test.com',
+      status: UserStatus.active,
+      roles: ['admin'],
+      onboardingCompletedAt: new Date(),
+      emailVerifiedAt: new Date()
+    }
+  });
+  const user = await prisma.user.create({
+    data: {
+      email: 'reveal-no-step-up@test.com',
+      status: UserStatus.active,
+      roles: ['user'],
+      onboardingCompletedAt: new Date(),
+      emailVerifiedAt: new Date()
+    }
+  });
+
+  const agent = request.agent(app);
+  const csrf = await getCsrf(agent);
+
+  const res = await agent
+    .post(`/api/admin/users/${user.id}/reveal`)
+    .set('Origin', 'http://localhost:3000')
+    .set('X-CSRF-Token', csrf)
+    .set('X-Test-User-Id', admin.id)
+    .set('X-Test-User-Roles', 'admin')
+    .send({ fields: ['email'], confirm: 'AFFICHER' });
+
+  assert.equal(res.status, 403);
+  assert.equal(res.body.error, 'MFA_STEP_UP_REQUIRED');
 });
 
 test('admin subscription change updates DB in test mode', async () => {
@@ -153,6 +201,7 @@ test('admin subscription change updates DB in test mode', async () => {
       emailVerifiedAt: new Date()
     }
   });
+  await addRecentMfaFactor(admin.id);
 
   const agent = request.agent(app);
   const csrf = await getCsrf(agent);

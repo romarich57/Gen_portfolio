@@ -7,10 +7,14 @@ import {
 import { actionConfirmationSchema, resendEmailSchema } from '../schemas/email-security.schema';
 import { sendValidationError } from '../shared/http';
 import {
+  cancelEmailChange,
   confirmEmailChange,
+  createEmailChangeCancelConfirmation,
+  createEmailChangeConfirmation
+} from '../services/email-change-confirmation.service';
+import {
   confirmEmailVerification,
   confirmRecoveryEmail,
-  createEmailChangeConfirmation,
   createEmailVerificationConfirmation,
   createRecoveryEmailConfirmation,
   resendVerificationEmail
@@ -91,6 +95,10 @@ async function handleConfirmationPost(
     }
     if (error instanceof Error && error.message === 'EMAIL_UNAVAILABLE') {
       res.status(409).json({ error: 'EMAIL_UNAVAILABLE', message: 'Cet email est déjà pris.', request_id: req.id });
+      return;
+    }
+    if (error instanceof Error && error.message === 'TOKEN_EXPIRED') {
+      res.status(400).json({ error: 'TOKEN_EXPIRED', request_id: req.id });
       return;
     }
     throw error;
@@ -191,5 +199,21 @@ export async function getEmailChangeVerificationHandler(req: Request, res: Respo
 export async function confirmEmailChangeHandler(req: Request, res: Response) {
   await handleConfirmationPost(req, res, (confirmationToken) =>
     confirmEmailChange(confirmationToken, { ip: req.ip ?? null }, req.id)
+  );
+}
+
+export async function getEmailChangeCancelHandler(req: Request, res: Response) {
+  const token = typeof req.query.token === 'string' ? req.query.token : null;
+  if (!token) {
+    res.status(400).json({ error: 'TOKEN_INVALID', request_id: req.id });
+    return;
+  }
+
+  await handleConfirmationGet(res, req.id, () => createEmailChangeCancelConfirmation(token, req.id));
+}
+
+export async function confirmEmailChangeCancelHandler(req: Request, res: Response) {
+  await handleConfirmationPost(req, res, (confirmationToken) =>
+    cancelEmailChange(confirmationToken, { ip: req.ip ?? null }, req.id)
   );
 }

@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { requireAuth } from './rbac';
+import { requireRecentMfa } from './stepUp';
 
 type AdminRole = 'admin' | 'super_admin';
 
@@ -26,6 +27,12 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
       return;
     }
     next();
+  });
+}
+
+export function requireAdminRecentMfa(req: Request, res: Response, next: NextFunction): void {
+  void requireAdmin(req, res, () => {
+    void requireRecentMfa(req, res, next);
   });
 }
 

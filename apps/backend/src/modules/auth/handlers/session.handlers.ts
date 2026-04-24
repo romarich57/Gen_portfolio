@@ -22,7 +22,7 @@ export async function loginHandler(req: Request, res: Response) {
   try {
     const result = await loginUser(parseResult.data, getRequestMeta(req), req.id);
     if (result.kind === 'mfa_setup_required') {
-      setAuthCookies(res, { accessToken: result.accessToken, refreshToken: result.refreshToken });
+      clearAuthCookies(res);
       setOnboardingCookie(res, result.userId, 'mfa');
       res.status(403).json({ error: 'MFA_SETUP_REQUIRED', request_id: req.id });
       return;
@@ -47,10 +47,6 @@ export async function loginHandler(req: Request, res: Response) {
       res.status(401).json({ error: 'INVALID_CREDENTIALS', request_id: req.id });
       return;
     }
-    if (error instanceof Error && error.message === 'EMAIL_NOT_VERIFIED') {
-      res.status(403).json({ error: 'EMAIL_NOT_VERIFIED', request_id: req.id });
-      return;
-    }
     throw error;
   }
 }
@@ -73,12 +69,13 @@ export async function refreshHandler(req: Request, res: Response) {
 
   try {
     const result = await refreshUserSession(refreshToken, getRequestMeta(req), req.id);
-    setAuthCookies(res, { accessToken: result.accessToken, refreshToken: result.refreshToken });
     if (result.kind === 'mfa_setup_required') {
+      clearAuthCookies(res);
       setOnboardingCookie(res, result.userId, 'mfa');
       res.status(403).json({ error: 'MFA_SETUP_REQUIRED', request_id: req.id });
       return;
     }
+    setAuthCookies(res, { accessToken: result.accessToken, refreshToken: result.refreshToken });
     res.json({ ok: true, request_id: req.id });
   } catch (error) {
     if (!(error instanceof Error)) {

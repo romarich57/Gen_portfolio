@@ -232,10 +232,24 @@ export async function verifyEmailChange(token: string) {
 }
 
 /**
+ * Cancel email change token.
+ */
+export async function cancelEmailChange(token: string) {
+  return confirmBootstrapAction('/auth/email/change/cancel', '/auth/email/change/cancel/confirm', token, true);
+}
+
+/**
  * Verify recovery email token.
  */
 export async function verifyRecoveryEmail(token: string) {
   return confirmBootstrapAction('/auth/recovery-email/verify', '/auth/recovery-email/verify', token, true);
+}
+
+/**
+ * Verify OAuth link approval token.
+ */
+export async function verifyOAuthLink(token: string) {
+  return confirmBootstrapAction('/auth/oauth/link/verify', '/auth/oauth/link/confirm', token, true);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAdmin } from '../../../middleware/adminAuth';
+import { requireAdmin, requireAdminRecentMfa } from '../../../middleware/adminAuth';
 import {
   getUserDetailsHandler,
   getUsersOverviewHandler,
@@ -15,8 +15,8 @@ router.use(requireAdmin);
 router.get('/overview', getUsersOverviewHandler);
 router.get('/users', listUsersHandler);
 router.get('/users/:id', getUserDetailsHandler);
-router.post('/users/:id/reveal', revealUserFieldsHandler);
-router.patch('/users/:id/role', updateUserRoleHandler);
-router.patch('/users/:id/status', updateUserStatusHandler);
+router.post('/users/:id/reveal', requireAdminRecentMfa, revealUserFieldsHandler);
+router.patch('/users/:id/role', requireAdminRecentMfa, updateUserRoleHandler);
+router.patch('/users/:id/status', requireAdminRecentMfa, updateUserStatusHandler);
 
 export { router as adminUsersRoutes };

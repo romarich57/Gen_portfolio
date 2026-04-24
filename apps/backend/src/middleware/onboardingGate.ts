@@ -6,7 +6,7 @@ import { resolvePermissions } from './rbac';
 import { writeAuditLog } from '../services/audit';
 import { getMfaPolicy, isMfaRequired } from '../services/mfaPolicy';
 
-const SKIP_PREFIXES = ['/auth', '/health', '/webhooks', '/_test', '/api/admin'];
+const SKIP_PREFIXES = ['/auth', '/health', '/webhooks', '/_test'];
 
 type AllowedRule = { method: string; pattern: RegExp };
 

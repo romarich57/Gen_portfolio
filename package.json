@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "deps:check-pinned": "node ./scripts_check_pinned_deps.mjs"
+    "deps:check-pinned": "node ./scripts_check_pinned_deps.mjs",
+    "env:validate:examples": "node ./scripts_validate_env_examples.mjs"
   }
 }

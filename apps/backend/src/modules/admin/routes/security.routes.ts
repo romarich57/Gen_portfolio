@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAdmin } from '../../../middleware/adminAuth';
+import { requireAdmin, requireAdminRecentMfa } from '../../../middleware/adminAuth';
 import {
   forceEmailVerificationHandler,
   revokeEmailVerificationHandler,
@@ -10,9 +10,9 @@ import {
 const router = Router();
 
 router.use(requireAdmin);
-router.post('/users/:id/password/reset', triggerAdminPasswordResetHandler);
-router.post('/users/:id/email/verify/force', forceEmailVerificationHandler);
-router.post('/users/:id/email/verify/revoke', revokeEmailVerificationHandler);
-router.post('/users/:id/sessions/revoke', revokeUserSessionsHandler);
+router.post('/users/:id/password/reset', requireAdminRecentMfa, triggerAdminPasswordResetHandler);
+router.post('/users/:id/email/verify/force', requireAdminRecentMfa, forceEmailVerificationHandler);
+router.post('/users/:id/email/verify/revoke', requireAdminRecentMfa, revokeEmailVerificationHandler);
+router.post('/users/:id/sessions/revoke', requireAdminRecentMfa, revokeUserSessionsHandler);
 
 export { router as adminSecurityRoutes };

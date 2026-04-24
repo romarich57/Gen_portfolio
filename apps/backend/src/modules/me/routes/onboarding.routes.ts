@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireAuth } from '../../../middleware/rbac';
 import {
   completeOnboardingHandler,
   getOnboardingStatusHandler
@@ -7,7 +6,7 @@ import {
 
 const router = Router();
 
-router.get('/onboarding', requireAuth, getOnboardingStatusHandler);
-router.patch('/onboarding', requireAuth, completeOnboardingHandler);
+router.get('/onboarding', getOnboardingStatusHandler);
+router.patch('/onboarding', completeOnboardingHandler);
 
 export { router as onboardingRoutes };

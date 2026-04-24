@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { ACCESS_COOKIE_NAME } from '../../../config/auth';
 import { env } from '../../../config/env';
 import {
+  clearAuthCookies,
   clearMfaChallengeCookie,
   clearOnboardingCookie,
   cookieOAuthOptions,
@@ -13,6 +14,10 @@ import { oauthProviderSchema, unlinkOAuthSchema } from '../schemas/oauth.schema'
 import {
   completeOAuthCallback
 } from '../services/oauth-callback.service';
+import {
+  confirmOAuthLink,
+  createOAuthLinkConfirmation
+} from '../services/oauth-link.service';
 import {
   getAuthenticatedOAuthUserId,
   getOAuthDebugData,
@@ -122,19 +127,72 @@ export async function oauthCallbackHandler(req: Request, res: Response) {
   }
 
   if (result.kind === 'mfa_challenge') {
+    clearAuthCookies(res);
+    clearOnboardingCookie(res);
     setMfaChallengeCookie(res, result.userId);
     redirectToFrontend({ next: 'mfa-challenge' });
     return;
   }
 
-  setAuthCookies(res, { accessToken: result.accessToken, refreshToken: result.refreshToken });
-  if (result.next === 'setup-mfa' && result.onboardingUserId) {
+  if (result.next === 'setup-mfa') {
+    clearAuthCookies(res);
     setOnboardingCookie(res, result.onboardingUserId, 'mfa');
-  } else {
-    clearOnboardingCookie(res);
+    clearMfaChallengeCookie(res);
+    redirectToFrontend({ next: result.next });
+    return;
   }
+
+  setAuthCookies(res, { accessToken: result.accessToken, refreshToken: result.refreshToken });
+  clearOnboardingCookie(res);
   clearMfaChallengeCookie(res);
   redirectToFrontend({ next: result.next });
+}
+
+export async function getOAuthLinkVerificationHandler(req: Request, res: Response) {
+  const token = typeof req.query.token === 'string' ? req.query.token : null;
+  if (!token) {
+    res.status(400).json({ error: 'TOKEN_INVALID', request_id: req.id });
+    return;
+  }
+
+  try {
+    const result = await createOAuthLinkConfirmation(token, req.id);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ confirmation_token: result.confirmationToken, request_id: req.id });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'TOKEN_INVALID') {
+      res.status(400).json({ error: 'TOKEN_INVALID', request_id: req.id });
+      return;
+    }
+    if (error instanceof Error && error.message === 'TOKEN_EXPIRED') {
+      res.status(400).json({ error: 'TOKEN_EXPIRED', request_id: req.id });
+      return;
+    }
+    throw error;
+  }
+}
+
+export async function confirmOAuthLinkHandler(req: Request, res: Response) {
+  const confirmationToken = typeof req.body?.confirmation_token === 'string' ? req.body.confirmation_token : null;
+  if (!confirmationToken) {
+    res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
+    return;
+  }
+
+  try {
+    await confirmOAuthLink(confirmationToken, { ip: req.ip ?? null }, req.id);
+    res.json({ ok: true, request_id: req.id });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'TOKEN_INVALID') {
+      res.status(400).json({ error: 'TOKEN_INVALID', request_id: req.id });
+      return;
+    }
+    if (error instanceof Error && error.message === 'TOKEN_EXPIRED') {
+      res.status(400).json({ error: 'TOKEN_EXPIRED', request_id: req.id });
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function unlinkOAuthHandler(req: Request, res: Response) {

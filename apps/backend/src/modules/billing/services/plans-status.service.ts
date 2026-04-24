@@ -1,3 +1,4 @@
+import { env } from '../../../config/env';
 import { writeAuditLog } from '../../../services/audit';
 import {
   CheckoutError,
@@ -49,6 +50,6 @@ export function mapCheckoutError(error: unknown) {
   return {
     errorMessage,
     errorCode: allowedErrors.has(errorMessage) ? errorMessage : 'CHECKOUT_FAILED',
-    debug: error instanceof CheckoutError && error.details ? { ...error.details } : undefined
+    debug: !env.isProduction && error instanceof CheckoutError && error.details ? { ...error.details } : undefined
   };
 }

@@ -1,4 +1,12 @@
 import dotenv from 'dotenv';
+import {
+  findDuplicateEnvKeys,
+  findDuplicateEnvKeysInEnvSource,
+  isValidHttpUrl,
+  isValidIpOrCidr,
+  loadEnvFileSource,
+  resolveDotenvPath
+} from './envFile';
 
 type EnvConfig = {
   nodeEnv: string;
@@ -12,6 +20,8 @@ type EnvConfig = {
   accessTokenSecret: string;
   refreshTokenSecret: string;
   mfaChallengeSecret: string;
+  emailChangeSecret: string;
+  actionConfirmationSecret: string;
   tokenHashSecret: string;
   backupCodePepper: string;
   mfaMasterKey: string;
@@ -99,25 +109,21 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
   return fallback;
 }
 
-function findDuplicateEnvKeys(keys: string[]): string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  for (const key of keys) {
-    if (seen.has(key)) {
-      duplicates.add(key);
-      continue;
-    }
-    seen.add(key);
-  }
-
-  return Array.from(duplicates);
-}
-
 function loadEnv(): EnvConfig {
   if (cached) return cached;
 
-  dotenv.config();
+  const dotenvPath = resolveDotenvPath(process.env.ENV_FILE_PATH);
+  const envFileSource = loadEnvFileSource(dotenvPath);
+  if (envFileSource) {
+    const duplicateKeys = findDuplicateEnvKeysInEnvSource(envFileSource);
+    if (duplicateKeys.length > 0) {
+      // eslint-disable-next-line no-console
+      console.error(`Duplicate env vars detected in ${dotenvPath}: ${duplicateKeys.join(', ')}`);
+      process.exit(1);
+    }
+  }
+
+  dotenv.config({ path: dotenvPath });
 
   const required = [
     'DATABASE_URL',
@@ -125,6 +131,8 @@ function loadEnv(): EnvConfig {
     'ACCESS_TOKEN_SECRET',
     'REFRESH_TOKEN_SECRET',
     'MFA_CHALLENGE_SECRET',
+    'EMAIL_CHANGE_SECRET',
+    'ACTION_CONFIRMATION_SECRET',
     'TOKEN_HASH_SECRET',
     'BACKUP_CODE_PEPPER',
     'MFA_MASTER_KEY',
@@ -228,6 +236,12 @@ function loadEnv(): EnvConfig {
   const corsOrigins = process.env.CORS_ORIGINS!.split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const invalidCorsOrigins = corsOrigins.filter((origin) => !isValidHttpUrl(origin));
+  if (invalidCorsOrigins.length > 0) {
+    // eslint-disable-next-line no-console
+    console.error(`CORS_ORIGINS contains invalid URLs: ${invalidCorsOrigins.join(', ')}`);
+    process.exit(1);
+  }
 
   const serviceStatusCronIntervalSeconds = parseNumber(
     process.env.SERVICE_STATUS_CRON_INTERVAL_SECONDS,
@@ -282,6 +296,8 @@ function loadEnv(): EnvConfig {
     accessTokenSecret: process.env.ACCESS_TOKEN_SECRET!,
     refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET!,
     mfaChallengeSecret: process.env.MFA_CHALLENGE_SECRET!,
+    emailChangeSecret: process.env.EMAIL_CHANGE_SECRET!,
+    actionConfirmationSecret: process.env.ACTION_CONFIRMATION_SECRET!,
     tokenHashSecret: process.env.TOKEN_HASH_SECRET!,
     backupCodePepper: process.env.BACKUP_CODE_PEPPER!,
     mfaMasterKey: process.env.MFA_MASTER_KEY!,
@@ -379,8 +395,15 @@ function loadEnv(): EnvConfig {
   validateRedirectUri(cached.oauthGoogleRedirectUri, 'OAUTH_GOOGLE_REDIRECT_URI');
   validateRedirectUri(cached.oauthGithubRedirectUri, 'OAUTH_GITHUB_REDIRECT_URI');
 
+  const invalidOauthDebugAllowlist = cached.oauthDebugIpAllowlist.filter((value) => !isValidIpOrCidr(value));
+  if (invalidOauthDebugAllowlist.length > 0) {
+    // eslint-disable-next-line no-console
+    console.error(`OAUTH_DEBUG_IP_ALLOWLIST contains invalid IP/CIDR entries: ${invalidOauthDebugAllowlist.join(', ')}`);
+    process.exit(1);
+  }
+
   return cached;
 }
 
 export const env = loadEnv();
-export { findDuplicateEnvKeys };
+export { findDuplicateEnvKeys, findDuplicateEnvKeysInEnvSource };

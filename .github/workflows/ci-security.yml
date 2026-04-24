@@ -23,6 +23,9 @@ jobs:
       - name: Enforce pinned dependency versions
         run: npm run deps:check-pinned
 
+      - name: Validate env examples
+        run: npm run env:validate:examples
+
       - name: Install backend dependencies
         working-directory: apps/backend
         run: npm ci

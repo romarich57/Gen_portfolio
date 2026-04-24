@@ -1,4 +1,5 @@
 import { AuthAttemptType } from '@prisma/client';
+import { env } from '../../../config/env';
 import { writeAuditLog } from '../../../services/audit';
 import { createPortalSession, createCheckoutSession, changePlan, CheckoutError } from '../../../services/billing';
 import { recordAuthAttempt } from '../../../services/authAttempts';
@@ -127,6 +128,6 @@ export function mapBillingActionError(error: unknown) {
   return {
     errorMessage,
     errorCode: allowedErrors.has(errorMessage) ? errorMessage : 'CHECKOUT_FAILED',
-    debug: error instanceof CheckoutError && error.details ? { ...error.details } : undefined
+    debug: !env.isProduction && error instanceof CheckoutError && error.details ? { ...error.details } : undefined
   };
 }

@@ -29,12 +29,12 @@ type SessionMeta = {
 
 export type LoginResult =
   | { kind: 'success'; accessToken: string; refreshToken: string }
-  | { kind: 'mfa_setup_required'; accessToken: string; refreshToken: string; userId: string }
+  | { kind: 'mfa_setup_required'; userId: string }
   | { kind: 'mfa_challenge_required'; userId: string };
 
 export type RefreshResult =
   | { kind: 'success'; accessToken: string; refreshToken: string }
-  | { kind: 'mfa_setup_required'; accessToken: string; refreshToken: string; userId: string };
+  | { kind: 'mfa_setup_required'; userId: string };
 
 export async function loginUser(input: LoginInput, meta: SessionMeta, requestId: string): Promise<LoginResult> {
   const identifierRaw = (input.email ?? input.identifier ?? '').trim();
@@ -126,7 +126,7 @@ export async function loginUser(input: LoginInput, meta: SessionMeta, requestId:
   });
 
   if (!user.emailVerifiedAt) {
-    throw new Error('EMAIL_NOT_VERIFIED');
+    throw new Error('INVALID_CREDENTIALS');
   }
 
   if (user.status !== UserStatus.active) {
@@ -138,12 +138,6 @@ export async function loginUser(input: LoginInput, meta: SessionMeta, requestId:
 
   const policy = await getMfaPolicy();
   if (isMfaRequired(user, policy) && !user.mfaEnabled) {
-    const session = await createSession({
-      userId: user.id,
-      roles: user.roles as unknown as string[],
-      ip: meta.ip ?? null,
-      userAgent: meta.userAgent ?? null
-    });
     await writeAuditLog({
       actorUserId: user.id,
       actorIp: meta.ip ?? null,
@@ -155,8 +149,6 @@ export async function loginUser(input: LoginInput, meta: SessionMeta, requestId:
     });
     return {
       kind: 'mfa_setup_required',
-      accessToken: session.accessToken,
-      refreshToken: session.refreshToken,
       userId: user.id
     };
   }
@@ -282,17 +274,18 @@ export async function refreshUserSession(
 
   const policy = await getMfaPolicy();
   if (isMfaRequired(user, policy) && !user.mfaEnabled) {
-    const rotated = await rotateSession({
-      sessionId: session.id,
-      userId: session.userId,
-      roles: user.roles as unknown as string[],
-      ip: meta.ip ?? null,
-      userAgent: meta.userAgent ?? null
+    await revokeSession(session.id);
+    await writeAuditLog({
+      actorUserId: user.id,
+      actorIp: meta.ip ?? null,
+      action: 'MFA_SETUP_REQUIRED',
+      targetType: 'user',
+      targetId: user.id,
+      metadata: { via: 'refresh' },
+      requestId
     });
     return {
       kind: 'mfa_setup_required',
-      accessToken: rotated.accessToken,
-      refreshToken: rotated.refreshToken,
       userId: user.id
     };
   }

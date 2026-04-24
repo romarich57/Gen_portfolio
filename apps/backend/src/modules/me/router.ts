@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireAuth } from '../../middleware/rbac';
 import { profileRoutes } from './routes/profile.routes';
 import { onboardingRoutes } from './routes/onboarding.routes';
 import { avatarRoutes } from './routes/avatar.routes';
@@ -9,6 +10,7 @@ import { securityEmailRoutes } from './routes/security-email.routes';
 
 const router = Router();
 
+router.use(requireAuth);
 router.use(profileRoutes);
 router.use(onboardingRoutes);
 router.use(avatarRoutes);

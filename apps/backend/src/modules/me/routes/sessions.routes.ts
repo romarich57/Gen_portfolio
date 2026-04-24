@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireAuth } from '../../../middleware/rbac';
 import {
   listSessionHistoryHandler,
   listSessionsHandler,
@@ -9,9 +8,9 @@ import {
 
 const router = Router();
 
-router.get('/sessions', requireAuth, listSessionsHandler);
-router.get('/sessions/history', requireAuth, listSessionHistoryHandler);
-router.post('/sessions/revoke', requireAuth, revokeSessionHandler);
-router.post('/sessions/revoke-all', requireAuth, revokeAllSessionsHandler);
+router.get('/sessions', listSessionsHandler);
+router.get('/sessions/history', listSessionHistoryHandler);
+router.post('/sessions/revoke', revokeSessionHandler);
+router.post('/sessions/revoke-all', revokeAllSessionsHandler);
 
 export { router as sessionsRoutes };

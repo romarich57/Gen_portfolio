@@ -6,8 +6,7 @@ import { sendEmail, buildEmailHtml, buildEmailText, buildEmailVerificationLink }
 import { generateRandomToken, hashToken } from '../../../utils/crypto';
 import {
   signActionConfirmationToken,
-  verifyActionConfirmationToken,
-  verifyEmailChangeToken
+  verifyActionConfirmationToken
 } from '../../../utils/jwt';
 import { normalizeEmail } from '../../../utils/normalize';
 
@@ -207,84 +206,6 @@ export async function confirmRecoveryEmail(confirmationToken: string, meta: Emai
     targetType: 'user',
     targetId: record.userId,
     metadata: {},
-    requestId
-  });
-}
-
-export async function createEmailChangeConfirmation(token: string, requestId: string) {
-  try {
-    const payload = verifyEmailChangeToken(token);
-    if (payload.type !== 'email_change' || !payload.newEmail) {
-      throw new Error('TOKEN_INVALID');
-    }
-
-    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) {
-      throw new Error('USER_NOT_FOUND');
-    }
-
-    const existing = await prisma.user.findUnique({ where: { email: payload.newEmail } });
-    if (existing) {
-      throw new Error('EMAIL_UNAVAILABLE');
-    }
-
-    const confirmationToken = signActionConfirmationToken(
-      {
-        sub: payload.sub,
-        type: 'action_confirmation',
-        action: 'email_change_verify',
-        sourceTokenHash: hashToken(token),
-        newEmail: payload.newEmail
-      },
-      5
-    );
-
-    return { confirmationToken, requestId };
-  } catch (error) {
-    if (error instanceof Error && ['USER_NOT_FOUND', 'EMAIL_UNAVAILABLE'].includes(error.message)) {
-      throw error;
-    }
-    throw new Error('TOKEN_EXPIRED');
-  }
-}
-
-export async function confirmEmailChange(confirmationToken: string, meta: EmailActionMeta, requestId: string) {
-  let payload;
-  try {
-    payload = verifyActionConfirmationToken(confirmationToken);
-  } catch {
-    throw new Error('TOKEN_INVALID');
-  }
-
-  if (payload.type !== 'action_confirmation' || payload.action !== 'email_change_verify' || !payload.newEmail) {
-    throw new Error('TOKEN_INVALID');
-  }
-
-  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-  if (!user) {
-    throw new Error('USER_NOT_FOUND');
-  }
-
-  const existing = await prisma.user.findUnique({ where: { email: payload.newEmail } });
-  if (existing) {
-    throw new Error('EMAIL_UNAVAILABLE');
-  }
-
-  await prisma.user.update({
-    where: { id: payload.sub },
-    data: {
-      email: payload.newEmail,
-      emailVerifiedAt: new Date()
-    }
-  });
-
-  await writeAuditLog({
-    actorUserId: payload.sub,
-    actorIp: meta.ip ?? null,
-    action: 'EMAIL_CHANGED',
-    targetType: 'user',
-    targetId: payload.sub,
-    metadata: { new_email: payload.newEmail },
     requestId
   });
 }

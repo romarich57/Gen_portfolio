@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { resendLimiter } from '../shared/rate-limits';
 import {
+  confirmEmailChangeCancelHandler,
   confirmAcknowledgeSecurityAlertHandler,
   confirmEmailChangeHandler,
   confirmEmailVerificationHandler,
   confirmRecoveryEmailHandler,
   confirmSecurityRevokeSessionsHandler,
+  getEmailChangeCancelHandler,
   getAcknowledgeSecurityAlertHandler,
   getEmailChangeVerificationHandler,
   getEmailVerificationHandler,
@@ -27,5 +29,8 @@ router.get('/security/acknowledge-alert', getAcknowledgeSecurityAlertHandler);
 router.post('/security/acknowledge-alert', confirmAcknowledgeSecurityAlertHandler);
 router.get('/email/change/verify', getEmailChangeVerificationHandler);
 router.post('/email/change/verify', confirmEmailChangeHandler);
+router.post('/email/change/confirm', confirmEmailChangeHandler);
+router.get('/email/change/cancel', getEmailChangeCancelHandler);
+router.post('/email/change/cancel/confirm', confirmEmailChangeCancelHandler);
 
 export { router as emailSecurityRoutes };

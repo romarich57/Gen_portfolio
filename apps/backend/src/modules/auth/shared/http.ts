@@ -43,6 +43,10 @@ export function requireAccessOrOnboardingUserId(
   res: Response,
   stage: 'phone' | 'mfa'
 ): string | null {
+  if (req.onboarding?.stage === stage) {
+    return req.onboarding.userId;
+  }
+
   const accessToken = req.cookies?.[ACCESS_COOKIE_NAME] as string | undefined;
   if (accessToken) {
     try {

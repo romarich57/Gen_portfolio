@@ -15,18 +15,14 @@ export type ChallengeTokenPayload = {
   stage?: 'phone' | 'mfa';
 };
 
-export type EmailChangeTokenPayload = {
-  sub: string;
-  newEmail: string;
-  type: 'email_change';
-};
-
 export type ActionConfirmationType =
   | 'email_verify'
   | 'recovery_email_verify'
   | 'security_revoke_sessions'
   | 'security_acknowledge_alert'
-  | 'email_change_verify';
+  | 'email_change_verify'
+  | 'email_change_cancel'
+  | 'oauth_link_verify';
 
 export type ActionConfirmationPayload = {
   sub: string;
@@ -90,26 +86,11 @@ export function signChallengeToken(payload: ChallengeTokenPayload, expiresInMinu
   });
 }
 
-export function signEmailChangeToken(payload: EmailChangeTokenPayload, expiresInMinutes: number): string {
-  return jwt.sign(payload, env.mfaChallengeSecret, {
-    expiresIn: `${expiresInMinutes}m`,
-    issuer: JWT_ISSUER,
-    algorithm: JWT_ALGORITHM
-  });
-}
-
-export function verifyEmailChangeToken(token: string): EmailChangeTokenPayload {
-  return jwt.verify(token, env.mfaChallengeSecret, {
-    issuer: JWT_ISSUER,
-    algorithms: [JWT_ALGORITHM]
-  }) as EmailChangeTokenPayload;
-}
-
 export function signActionConfirmationToken(
   payload: ActionConfirmationPayload,
   expiresInMinutes: number
 ): string {
-  return jwt.sign(payload, env.mfaChallengeSecret, {
+  return jwt.sign(payload, env.actionConfirmationSecret, {
     expiresIn: `${expiresInMinutes}m`,
     issuer: JWT_ISSUER,
     algorithm: JWT_ALGORITHM
@@ -117,7 +98,7 @@ export function signActionConfirmationToken(
 }
 
 export function verifyActionConfirmationToken(token: string): ActionConfirmationPayload {
-  return jwt.verify(token, env.mfaChallengeSecret, {
+  return jwt.verify(token, env.actionConfirmationSecret, {
     issuer: JWT_ISSUER,
     algorithms: [JWT_ALGORITHM]
   }) as ActionConfirmationPayload;

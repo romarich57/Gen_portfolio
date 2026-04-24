@@ -11,6 +11,7 @@
     "start": "NODE_ENV=production node dist/server.js",
     "worker": "NODE_ENV=production node dist/worker.js",
     "worker:once": "NODE_ENV=production WORKER_ONCE=true tsx src/worker.ts",
+    "security:mfa-reencrypt": "tsx scripts/reencrypt-mfa-secrets.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "npm run lint:eslint && npm run lint:types",
     "test": "NODE_ENV=test tsx --test --test-concurrency=1 \"tests/**/*.test.ts\"",

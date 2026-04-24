@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, requireRole } from '../middleware/rbac';
+import { requireRecentMfa } from '../middleware/stepUp';
 import { writeAuditLog } from '../services/audit';
 import { refreshServiceStatus, getServiceStatusHistory } from '../services/serviceStatus';
 import { resetMfaPolicyCache } from '../services/mfaPolicy';
@@ -54,7 +55,7 @@ router.get('/security/mfa-flags', async (req, res) => {
   });
 });
 
-router.put('/security/mfa-flags', async (req, res) => {
+router.put('/security/mfa-flags', requireRecentMfa, async (req, res) => {
   const parseResult = mfaFlagsSchema.safeParse(req.body);
   if (!parseResult.success) {
     res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
@@ -94,7 +95,7 @@ router.get('/security/otp-rate-limits', async (req, res) => {
   res.json({ limits, request_id: req.id });
 });
 
-router.put('/security/otp-rate-limits', async (req, res) => {
+router.put('/security/otp-rate-limits', requireRecentMfa, async (req, res) => {
   const parseResult = otpRateLimitsSchema.safeParse(req.body);
   if (!parseResult.success) {
     res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });
@@ -117,7 +118,7 @@ router.put('/security/otp-rate-limits', async (req, res) => {
   res.json({ ok: true, request_id: req.id });
 });
 
-router.patch('/users/:id/mfa-override', async (req, res) => {
+router.patch('/users/:id/mfa-override', requireRecentMfa, async (req, res) => {
   const parseResult = mfaOverrideSchema.safeParse(req.body);
   if (!parseResult.success) {
     res.status(400).json({ error: 'VALIDATION_ERROR', request_id: req.id });

@@ -53,6 +53,7 @@ Consultez le dossier `/docs` pour le détail des implémentations :
 - [Moteur IA & Architecture Split-Screen](docs/AI_PORTFOLIO_ENGINE.md) (Nouveau)
 - [Modèles de Données Portfolio](docs/DB_SCHEMA_PORTFOLIO.md) (Nouveau)
 - [Sécurité API & Auth](docs/AUTH_SPEC.md)
+- [Runbook secrets & Doppler](docs/SECRET_MANAGEMENT.md)
 - [Gestion des Fichiers Cloud (S3)](docs/S3_STORAGE_SETUP.md)
 - [Spécifications Stripe (Billing)](docs/BILLING_SPEC.md)
 - [Spécification Queue & Worker](docs/JOBS_QUEUE_SPEC.md)
@@ -75,6 +76,14 @@ Consultez le dossier `/docs` pour le détail des implémentations :
 - Contrôle automatique du pinning:
   - `npm run deps:check-pinned`
   - exécuté aussi en CI (`ci-security.yml`, `deploy.yml`)
+
+## 🔐 Secrets & Hooks locaux
+- Secrets locaux: utiliser `doppler run -- ...`, pas de `.env` durable sur les postes dev.
+- Validation des exemples d’env:
+  - `npm run env:validate:examples`
+- Hook local:
+  - `git config core.hooksPath .githooks`
+  - le hook `pre-commit` lance `gitleaks protect --staged` et la validation des env examples.
 
 ---
 *Ce projet est maintenu sous les directives strictest de l'OWASP ASVS et des bonnes pratiques de Clean Code et DevOps.*

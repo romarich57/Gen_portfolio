@@ -5,6 +5,7 @@ import { getMfaPolicy, isMfaRequired } from '../../../services/mfaPolicy';
 import { exchangeOAuthCode, fetchOAuthProfile, getOAuthRedirectUri } from '../../../services/oauth';
 import { createSession } from '../../../services/session';
 import { maybeSendLoginAlert } from '../../../services/securityAlerts';
+import { requestOAuthLinkApproval } from './oauth-link.service';
 import { issueEmailVerification, hasKnownDeviceSession } from '../shared/service-helpers';
 
 type OAuthCallbackMeta = {
@@ -14,7 +15,8 @@ type OAuthCallbackMeta = {
 
 export type OAuthCallbackResult =
   | { kind: 'redirect_error'; reason?: string | undefined }
-  | { kind: 'success'; next: 'dashboard' | 'complete-profile' | 'setup-mfa'; accessToken: string; refreshToken: string; onboardingUserId?: string | undefined }
+  | { kind: 'success'; next: 'dashboard' | 'complete-profile'; accessToken: string; refreshToken: string }
+  | { kind: 'success'; next: 'setup-mfa'; onboardingUserId: string }
   | { kind: 'mfa_challenge'; userId: string };
 
 export async function completeOAuthCallback(params: {
@@ -50,13 +52,22 @@ export async function completeOAuthCallback(params: {
       return { kind: 'redirect_error' };
     }
 
-    let user = await prisma.user.findFirst({
-      where: { email: { equals: profile.email.trim().toLowerCase(), mode: 'insensitive' } }
+    const normalizedEmail = profile.email.trim().toLowerCase();
+    const linkedAccount = await prisma.oAuthAccount.findUnique({
+      where: {
+        oauth_accounts_provider_provider_user_id_key: {
+          provider,
+          providerUserId: profile.providerUserId
+        }
+      },
+      include: { user: true }
     });
 
-    const normalizedEmail = profile.email.trim().toLowerCase();
-    const emailVerified = profile.emailVerified || Boolean(user?.emailVerifiedAt);
+    let user = linkedAccount?.user ?? await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
 
+    const emailVerified = Boolean(linkedAccount) || profile.emailVerified || Boolean(user?.emailVerifiedAt);
     if (!emailVerified) {
       if (!user) {
         user = await prisma.user.create({
@@ -107,9 +118,10 @@ export async function completeOAuthCallback(params: {
       return { kind: 'redirect_error', reason: 'email_not_verified' };
     }
 
-    if (user) {
+    if (linkedAccount) {
+      user = linkedAccount.user;
       if (!user.emailVerifiedAt || user.status !== UserStatus.active) {
-        await prisma.user.update({
+        user = await prisma.user.update({
           where: { id: user.id },
           data: {
             emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
@@ -117,25 +129,27 @@ export async function completeOAuthCallback(params: {
           }
         });
       }
-
-      await prisma.oAuthAccount.upsert({
-        where: {
-          oauth_accounts_provider_provider_user_id_key: {
-            provider,
-            providerUserId: profile.providerUserId
-          }
-        },
-        update: {
-          userId: user.id,
-          emailAtProvider: normalizedEmail
-        },
-        create: {
-          provider,
-          providerUserId: profile.providerUserId,
-          userId: user.id,
-          emailAtProvider: normalizedEmail
-        }
+    } else if (user) {
+      await requestOAuthLinkApproval({
+        userId: user.id,
+        email: user.email,
+        provider,
+        providerUserId: profile.providerUserId,
+        emailAtProvider: normalizedEmail,
+        requestedIp: meta.ip ?? null
       });
+
+      await writeAuditLog({
+        actorUserId: user.id,
+        actorIp: meta.ip ?? null,
+        action: 'OAUTH_LINK_PENDING_APPROVAL',
+        targetType: 'user',
+        targetId: user.id,
+        metadata: { provider },
+        requestId
+      });
+
+      return { kind: 'redirect_error', reason: 'link_confirmation_required' };
     } else {
       user = await prisma.user.create({
         data: {
@@ -189,32 +203,9 @@ export async function completeOAuthCallback(params: {
     const mfaRequired = isMfaRequired(user, policy);
 
     if (profileComplete && mfaRequired && !user.mfaEnabled) {
-      const knownDevice = await hasKnownDeviceSession({
-        userId: user.id,
-        ip: meta.ip ?? null,
-        userAgent: meta.userAgent ?? null
-      });
-      const session = await createSession({
-        userId: user.id,
-        roles: user.roles as unknown as string[],
-        ip: meta.ip ?? null,
-        userAgent: meta.userAgent ?? null
-      });
-      await maybeSendLoginAlert({
-        userId: user.id,
-        email: user.email,
-        ip: meta.ip ?? null,
-        userAgent: meta.userAgent ?? null,
-        emailEnabled: user.securityAlertEmailEnabled,
-        smsEnabled: user.securityAlertSmsEnabled,
-        requestId,
-        knownDevice
-      });
       return {
         kind: 'success',
         next: 'setup-mfa',
-        accessToken: session.accessToken,
-        refreshToken: session.refreshToken,
         onboardingUserId: user.id
       };
     }

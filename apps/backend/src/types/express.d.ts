@@ -8,5 +8,10 @@ declare module 'express-serve-static-core' {
       roles?: string[];
       permissions?: string[];
     };
+    onboarding?: {
+      userId: string;
+      stage: 'phone' | 'mfa';
+      viaAccessSession: boolean;
+    };
   }
 }

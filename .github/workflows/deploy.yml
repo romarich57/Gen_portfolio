@@ -11,6 +11,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
+  GHCR_USER: ${{ vars.GHCR_USER || github.repository_owner }}
   # Noms d’images STABLES et lowercase (indépendants du nom du repo)
   BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/saas-builder-backend
   FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/saas-builder-frontend
@@ -44,6 +45,9 @@ jobs:
 
       - name: Enforce pinned dependency versions
         run: npm run deps:check-pinned
+
+      - name: Validate env examples
+        run: npm run env:validate:examples
 
       # -------- BACKEND --------
       - name: Backend deps
@@ -177,13 +181,14 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: GHCR_USER
           script: |
             set -e
             cd /home/ubuntu/Saas_builder/Saas_builder
 
             # Login GHCR SUR VPS
             # => Utilise un token "deploy" dédié stocké en secret (lecture packages).
-            docker login ghcr.io -u romarich57 -p ${{ secrets.GHCR_DEPLOY_TOKEN }}
+            printf '%s' '${{ secrets.GHCR_DEPLOY_TOKEN }}' | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             docker compose --env-file ./apps/backend/.env.prod -f docker-compose.prod.yml pull
             docker compose --env-file ./apps/backend/.env.prod -f docker-compose.prod.yml up -d

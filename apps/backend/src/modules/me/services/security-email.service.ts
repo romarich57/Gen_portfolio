@@ -1,10 +1,15 @@
 import { prisma } from '../../../db/prisma';
 import { env } from '../../../config/env';
 import { sendEmail, buildEmailHtml, buildEmailText } from '../../../services/email';
+import {
+  sendEmailChangeRequestNotifications,
+  sendPasswordChangedNotification,
+  sendRecoveryEmailAddedNotification,
+  sendRecoveryEmailRemovedNotification
+} from '../../../services/accountChangeNotifications';
 import { revokeAllSessions } from '../../../services/session';
 import { normalizeEmail } from '../../../utils/normalize';
 import { verifyPassword, hashPassword } from '../../../utils/password';
-import { signEmailChangeToken } from '../../../utils/jwt';
 import { hashToken, generateRandomToken, hashBackupCode, generateBackupCode } from '../../../utils/crypto';
 import { hasRecentMfaIfEnabled } from '../shared/service-helpers';
 
@@ -146,6 +151,11 @@ export async function requestRecoveryEmailForUser(params: {
     emailSent = false;
   }
 
+  await sendRecoveryEmailAddedNotification({
+    email: user.email,
+    recoveryEmail
+  }).catch(() => undefined);
+
   return { emailSent, rawToken };
 }
 
@@ -184,6 +194,8 @@ export async function removeRecoveryEmailForUser(params: {
       }
     })
   ]);
+
+  await sendRecoveryEmailRemovedNotification(user.email).catch(() => undefined);
 }
 
 export async function changePasswordForUser(params: {
@@ -212,17 +224,37 @@ export async function changePasswordForUser(params: {
   });
 
   await revokeAllSessions(params.userId);
+  await sendPasswordChangedNotification(user.email).catch(() => undefined);
+}
+
+async function requireRecentMfaForSensitiveEmailChange(userId: string) {
+  const factor = await prisma.mfaFactor.findFirst({
+    where: { userId, enabledAt: { not: null } },
+    orderBy: { lastUsedAt: 'desc' }
+  });
+
+  if (!factor || !factor.lastUsedAt) {
+    throw new Error('MFA_STEP_UP_REQUIRED');
+  }
+
+  const maxAgeMs = env.reauthMaxHours * 60 * 60 * 1000;
+  if (Date.now() - factor.lastUsedAt.getTime() > maxAgeMs) {
+    throw new Error('MFA_STEP_UP_REQUIRED');
+  }
 }
 
 export async function requestEmailChangeForUser(params: {
   userId: string;
   newEmail: string;
   password?: string | undefined;
+  requestedIp?: string | null | undefined;
 }) {
   const user = await prisma.user.findUnique({ where: { id: params.userId } });
   if (!user) {
     throw new Error('USER_NOT_FOUND');
   }
+
+  await requireRecentMfaForSensitiveEmailChange(params.userId);
 
   if (user.passwordHash) {
     if (!params.password) {
@@ -235,42 +267,56 @@ export async function requestEmailChangeForUser(params: {
   }
 
   const normalizedEmail = normalizeEmail(params.newEmail);
-  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  const existing = await prisma.user.findFirst({
+    where: {
+      email: { equals: normalizedEmail, mode: 'insensitive' },
+      id: { not: params.userId }
+    }
+  });
   if (existing) {
     throw new Error('EMAIL_UNAVAILABLE');
   }
 
-  const token = signEmailChangeToken(
-    {
-      sub: params.userId,
-      newEmail: normalizedEmail,
-      type: 'email_change'
-    },
-    60
-  );
+  const verifyToken = generateRandomToken(32);
+  const cancelToken = generateRandomToken(32);
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-  const verifyLink = `${env.appBaseUrl}/verify-email-change?token=${encodeURIComponent(token)}`;
+  const request = await prisma.$transaction(async (tx) => {
+    await tx.emailChangeRequest.deleteMany({
+      where: {
+        userId: params.userId,
+        completedAt: null,
+        cancelledAt: null
+      }
+    });
 
-  await sendEmail({
-    to: normalizedEmail,
-    subject: 'Vérification de votre nouvel email',
-    html: buildEmailHtml({
-      title: 'Changement d\'email',
-      preview: 'Confirmez votre nouvel email.',
-      intro: `Vous avez demandé à changer votre email pour ${normalizedEmail}.`,
-      actionLabel: 'Vérifier mon nouvel email',
-      actionUrl: verifyLink,
-      outro: 'Ce lien expire dans 1 heure.'
-    }),
-    text: buildEmailText({
-      title: 'Changement d\'email',
-      preview: 'Confirmez votre nouvel email.',
-      intro: `Vous avez demandé à changer votre email pour ${normalizedEmail}.`,
-      actionLabel: 'Vérifier mon nouvel email',
-      actionUrl: verifyLink,
-      outro: 'Ce lien expire dans 1 heure.'
-    })
+    return tx.emailChangeRequest.create({
+      data: {
+        userId: params.userId,
+        oldEmail: user.email,
+        newEmail: normalizedEmail,
+        verifyTokenHash: hashToken(verifyToken),
+        cancelTokenHash: hashToken(cancelToken),
+        requestedIp: params.requestedIp ?? null,
+        expiresAt
+      }
+    });
   });
 
-  return { normalizedEmail, token };
+  const verifyLink = `${env.appBaseUrl}/verify-email-change?token=${encodeURIComponent(verifyToken)}`;
+  const cancelLink = `${env.appBaseUrl}/cancel-email-change?token=${encodeURIComponent(cancelToken)}`;
+
+  try {
+    await sendEmailChangeRequestNotifications({
+      oldEmail: user.email,
+      newEmail: normalizedEmail,
+      verifyUrl: verifyLink,
+      cancelUrl: cancelLink
+    });
+  } catch (error) {
+    await prisma.emailChangeRequest.delete({ where: { id: request.id } });
+    throw error;
+  }
+
+  return { normalizedEmail, verifyToken, cancelToken };
 }

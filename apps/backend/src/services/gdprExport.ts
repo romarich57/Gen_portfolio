@@ -71,8 +71,6 @@ async function buildExportPayload(userId: string) {
       id: file.id,
       kind: file.kind,
       status: file.status,
-      bucket: file.bucket,
-      object_key: file.objectKey,
       mime_type: file.mimeType,
       size_bytes: file.sizeBytes,
       created_at: file.createdAt,

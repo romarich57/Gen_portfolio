@@ -60,7 +60,8 @@ test('login requires MFA setup when global flag is enabled', async () => {
   assert.equal(res.body.error, 'MFA_SETUP_REQUIRED');
   const cookies = res.headers['set-cookie'] as unknown as string[];
   assert.ok(cookies.some((cookie) => cookie.startsWith('onboarding_token=')));
-  assert.ok(cookies.some((cookie) => cookie.startsWith('access_token=')));
+  assert.ok(!cookies.some((cookie) => /^access_token=[^;]+/.test(cookie) && !cookie.startsWith('access_token=;')));
+  assert.ok(!cookies.some((cookie) => /^refresh_token=[^;]+/.test(cookie) && !cookie.startsWith('refresh_token=;')));
 });
 
 test('login succeeds when user override disables global MFA requirement', async () => {

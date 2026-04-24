@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireAuth } from '../../../middleware/rbac';
 import { requireRecentMfa } from '../../../middleware/stepUp';
 import { buildRateLimiter } from '../../../middleware/rateLimit';
 import {
@@ -17,9 +16,9 @@ const gdprExportLimiter = buildRateLimiter({
   keyGenerator: (req) => req.user?.id ?? 'unknown'
 });
 
-router.post('/gdpr/export/request', requireAuth, requireRecentMfa, gdprExportLimiter, requestGdprExportHandler);
-router.get('/gdpr/export/:id/status', requireAuth, getGdprExportStatusHandler);
-router.get('/gdpr/export/:id/download-url', requireAuth, getGdprExportDownloadUrlHandler);
-router.post('/gdpr/delete/request', requireAuth, requireRecentMfa, requestDeletionHandler);
+router.post('/gdpr/export/request', requireRecentMfa, gdprExportLimiter, requestGdprExportHandler);
+router.get('/gdpr/export/:id/status', getGdprExportStatusHandler);
+router.get('/gdpr/export/:id/download-url', getGdprExportDownloadUrlHandler);
+router.post('/gdpr/delete/request', requireRecentMfa, requestDeletionHandler);
 
 export { router as gdprRoutes };

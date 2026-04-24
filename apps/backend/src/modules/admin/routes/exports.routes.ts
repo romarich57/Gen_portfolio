@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireAdmin } from '../../../middleware/adminAuth';
+import { requireAdmin, requireAdminRecentMfa } from '../../../middleware/adminAuth';
 import {
   listExportsHandler,
   purgeUserDeletionHandler,
@@ -10,9 +10,9 @@ import {
 const router = Router();
 
 router.use(requireAdmin);
-router.post('/users/:id/gdpr/export', requestUserExportHandler);
-router.post('/users/:id/delete', requestUserDeletionHandler);
-router.post('/users/:id/purge', purgeUserDeletionHandler);
+router.post('/users/:id/gdpr/export', requireAdminRecentMfa, requestUserExportHandler);
+router.post('/users/:id/delete', requireAdminRecentMfa, requestUserDeletionHandler);
+router.post('/users/:id/purge', requireAdminRecentMfa, purgeUserDeletionHandler);
 router.get('/exports', listExportsHandler);
 
 export { router as adminExportsRoutes };

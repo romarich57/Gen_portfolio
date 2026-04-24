@@ -271,7 +271,8 @@ export async function requestEmailChangeHandler(req: Request, res: Response) {
   try {
     const result = await requestEmailChangeForUser({
       userId,
-      ...parseResult.data
+      ...parseResult.data,
+      requestedIp: req.ip ?? null
     });
 
     await writeAuditLog({
@@ -287,7 +288,12 @@ export async function requestEmailChangeHandler(req: Request, res: Response) {
     res.json({
       ok: true,
       request_id: req.id,
-      ...(env.isTest ? { test_token: result.token } : {})
+      ...(env.isTest
+        ? {
+            test_token: result.verifyToken,
+            test_cancel_token: result.cancelToken
+          }
+        : {})
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
@@ -306,6 +312,13 @@ export async function requestEmailChangeHandler(req: Request, res: Response) {
       res.status(401).json({
         error: 'INVALID_PASSWORD',
         message: 'Mot de passe incorrect',
+        request_id: req.id
+      });
+      return;
+    }
+    if (error instanceof Error && error.message === 'MFA_STEP_UP_REQUIRED') {
+      res.status(403).json({
+        error: 'MFA_STEP_UP_REQUIRED',
         request_id: req.id
       });
       return;

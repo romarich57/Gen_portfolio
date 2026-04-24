@@ -128,8 +128,13 @@ function buildRateLimiter({ windowMs, limit, keyGenerator, skip }: RateLimitConf
 const globalLimiter = buildRateLimiter({
   windowMs: 60 * 1000,
   limit: 100,
-  skip: (req) =>
-    req.originalUrl.startsWith('/webhooks/stripe') || req.originalUrl.startsWith('/health')
+  skip: (req) => req.originalUrl.startsWith('/webhooks/stripe')
+});
+
+const healthLimiter = buildRateLimiter({
+  windowMs: 60 * 1000,
+  limit: 30,
+  keyGenerator: (req) => ipKeyGenerator(req.ip || '0.0.0.0')
 });
 
 const adminReadBurstLimiter = buildRateLimiter({
@@ -188,4 +193,4 @@ function adminApiLimiter(req: Request, res: Response, next: NextFunction): void 
   runRateLimiterChain(handlers, req, res, next);
 }
 
-export { buildRateLimiter, buildRateLimitKey, accountKeyGenerator, globalLimiter, adminApiLimiter };
+export { buildRateLimiter, buildRateLimitKey, accountKeyGenerator, globalLimiter, adminApiLimiter, healthLimiter };

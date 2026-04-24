@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireAuth } from '../../../middleware/rbac';
 import {
   getProfileHandler,
   updateProfileHandler
@@ -7,7 +6,7 @@ import {
 
 const router = Router();
 
-router.get('/', requireAuth, getProfileHandler);
-router.patch('/', requireAuth, updateProfileHandler);
+router.get('/', getProfileHandler);
+router.patch('/', updateProfileHandler);
 
 export { router as profileRoutes };

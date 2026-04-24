@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireAuth } from '../../../middleware/rbac';
 import { buildRateLimiter } from '../../../middleware/rateLimit';
 import {
   confirmAvatarUploadHandler,
@@ -14,7 +13,7 @@ const avatarLimiter = buildRateLimiter({
   keyGenerator: (req) => req.user?.id ?? 'unknown'
 });
 
-router.post('/avatar/upload-url', requireAuth, avatarLimiter, issueAvatarUploadHandler);
-router.post('/avatar/confirm', requireAuth, confirmAvatarUploadHandler);
+router.post('/avatar/upload-url', avatarLimiter, issueAvatarUploadHandler);
+router.post('/avatar/confirm', confirmAvatarUploadHandler);
 
 export { router as avatarRoutes };

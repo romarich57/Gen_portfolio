@@ -9,6 +9,8 @@ import Register from '@/pages/public/Register';
 import VerifyEmail from '@/pages/public/VerifyEmail';
 import VerifyRecoveryEmail from '@/pages/public/VerifyRecoveryEmail';
 import VerifyEmailChange from '@/pages/public/VerifyEmailChange';
+import CancelEmailChange from '@/pages/public/CancelEmailChange';
+import VerifyOAuthLink from '@/pages/public/VerifyOAuthLink';
 import SecurityRevokeSessions from '@/pages/public/SecurityRevokeSessions';
 import SecurityAcknowledgeAlert from '@/pages/public/SecurityAcknowledgeAlert';
 import ForgotPassword from '@/pages/public/ForgotPassword';
@@ -45,12 +47,15 @@ const router = createBrowserRouter([
       { path: 'verify-email', element: <VerifyEmail /> },
       { path: 'verify-email-change', element: <VerifyEmailChange /> },
       { path: 'auth/verify-email-change', element: <VerifyEmailChange /> },
+      { path: 'cancel-email-change', element: <CancelEmailChange /> },
       { path: 'verify-recovery-email', element: <VerifyRecoveryEmail /> },
+      { path: 'verify-oauth-link', element: <VerifyOAuthLink /> },
       { path: 'security/revoke-sessions', element: <SecurityRevokeSessions /> },
       { path: 'security/acknowledge-alert', element: <SecurityAcknowledgeAlert /> },
       { path: 'forgot-password', element: <ForgotPassword /> },
       { path: 'reset-password', element: <ResetPassword /> },
       { path: 'oauth/callback', element: <OAuthCallback /> },
+      { path: 'setup-mfa', element: <MfaSetup /> },
       { path: 'terms', element: <Terms /> },
       { path: 'privacy', element: <Privacy /> },
       { path: 'mfa-challenge', element: <MfaChallenge /> },
@@ -70,7 +75,6 @@ const router = createBrowserRouter([
       { path: 'profile', element: <Profile /> },
       { path: 'sessions', element: <Sessions /> },
       { path: 'verify-phone', element: <PhoneVerify /> },
-      { path: 'setup-mfa', element: <MfaSetup /> },
       { path: 'billing', element: <Billing /> },
       { path: 'billing/success', element: <BillingSuccess /> },
       { path: 'admin/status', element: <ServiceStatus /> }

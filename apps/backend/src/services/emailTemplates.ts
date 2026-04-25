@@ -81,7 +81,7 @@ export function buildEmailHtml(params: EmailTemplateParams): string {
       <span class="preview">${preview}</span>
       <div class="card">
         <div class="brand">
-          <h1>SaaS Builder</h1>
+          <h1>CV Genius</h1>
           <p>Plateforme securisee &amp; moderne</p>
         </div>
         <div class="content">

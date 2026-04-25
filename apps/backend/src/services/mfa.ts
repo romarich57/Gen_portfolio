@@ -1,6 +1,6 @@
 import { authenticator } from 'otplib';
 
-const ISSUER = 'SaaS Builder';
+const ISSUER = 'CV Genius';
 
 authenticator.options = {
   window: 1

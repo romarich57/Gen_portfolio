@@ -7,7 +7,7 @@ export const profileSchema = z.object({
   last_name: z.string().min(1, { message: 'required' }).max(64, { message: 'max' }).optional(),
   username: z.string().regex(USERNAME_REGEX, { message: 'username_invalid' }).optional(),
   nationality: z.string().regex(/^[A-Za-z]{2}$/, { message: 'country_invalid' }).optional(),
-  locale: z.string().min(2, { message: 'min' }).max(10, { message: 'max' }).optional()
+  locale: z.enum(['fr', 'en']).optional()
 });
 
 export const onboardingSchema = z.object({

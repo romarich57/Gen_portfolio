@@ -1,7 +1,7 @@
 import jwt, { type Algorithm } from 'jsonwebtoken';
 import { env } from '../config/env';
 
-const JWT_ISSUER = 'saas-builder';
+const JWT_ISSUER = 'cv-genius';
 const JWT_ALGORITHM: Algorithm = 'HS256';
 
 export type AccessTokenPayload = {

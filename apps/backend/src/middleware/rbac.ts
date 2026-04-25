@@ -6,11 +6,11 @@ import { verifyAccessToken } from '../utils/jwt';
 type OwnerIdResolver = (req: Request) => string | null;
 
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  user: ['billing:read', 'billing:checkout', 'billing:portal'],
-  premium: ['billing:read', 'billing:checkout', 'billing:portal'],
-  vip: ['billing:read', 'billing:checkout', 'billing:portal'],
-  admin: ['billing:read', 'billing:checkout', 'billing:portal', 'admin:all'],
-  super_admin: ['billing:read', 'billing:checkout', 'billing:portal', 'admin:all']
+  user: ['billing:read', 'billing:checkout', 'billing:portal', 'resume:write', 'ai:resume:use'],
+  premium: ['billing:read', 'billing:checkout', 'billing:portal', 'resume:write', 'ai:resume:use'],
+  vip: ['billing:read', 'billing:checkout', 'billing:portal', 'resume:write', 'ai:resume:use'],
+  admin: ['billing:read', 'billing:checkout', 'billing:portal', 'resume:write', 'ai:resume:use', 'admin:all'],
+  super_admin: ['billing:read', 'billing:checkout', 'billing:portal', 'resume:write', 'ai:resume:use', 'admin:all']
 };
 
 function resolvePermissions(roles: string[] = []): string[] {

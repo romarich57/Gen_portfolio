@@ -784,7 +784,7 @@ function Profile() {
             <div className="space-y-6 animate-fadeUp">
               <div className="px-2">
                 <h2 className="text-2xl font-display font-black uppercase tracking-tight">Mes Connexions</h2>
-                <p className="text-sm text-muted-foreground font-medium">Gérez vos comptes tiers liés à votre profil SaaS//Builder.</p>
+                <p className="text-sm text-muted-foreground font-medium">Gérez vos comptes tiers liés à votre profil CV Genius.</p>
               </div>
 
               <div className="grid gap-4">

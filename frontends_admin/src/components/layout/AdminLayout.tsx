@@ -72,7 +72,7 @@ function AdminLayout({ admin }: AdminLayoutProps) {
           >
             <p className="text-[10px] items-center flex gap-2 font-bold uppercase tracking-[0.25em] text-primary/80">
               <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              SaaS Builder
+              CV Genius
             </p>
             <h1 className="mt-2 text-2xl font-bold bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">Admin Hub</h1>
           </motion.div>

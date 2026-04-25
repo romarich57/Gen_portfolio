@@ -19,7 +19,18 @@ const loggerRedactPaths = Object.freeze([
   'req.body.otp',
   'req.body.code',
   'req.body.captchaToken',
-  'req.body.backupCode'
+  'req.body.backupCode',
+  'req.body.apiKey',
+  'req.body.model',
+  'req.body.provider',
+  'req.body.apiEndpoint',
+  'req.body.content',
+  'req.body.text',
+  'req.body.images',
+  'req.body.resume',
+  'req.body.prompt',
+  'req.body.custom_instructions',
+  'req.body.instructions'
 ]);
 
 const logger = pino({

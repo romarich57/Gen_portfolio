@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import ThemeToggle from '@/components/common/ThemeToggle';
+import LanguageSwitch from '@/components/common/LanguageSwitch';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/app/providers/AuthBootstrap';
 
@@ -19,8 +20,8 @@ function PublicLayout() {
   const navLinks = [
     { label: 'APPLICATION', to: '/' },
     { label: 'PRIX', to: '/#pricing' },
-    { label: 'DOCUMENTATION', to: '/wip' },
-    { label: 'QUI SOMMES-NOUS', to: '/wip' },
+    { label: 'TEMPLATES', to: '/templates' },
+    { label: 'SECURITE', to: '/privacy' },
   ];
 
   useEffect(() => {
@@ -46,7 +47,7 @@ function PublicLayout() {
             <div className="size-4 bg-primary rotate-45" />
           </div>
           <span className="text-xl font-display font-bold tracking-tighter uppercase">
-            SaaS<span className="text-primary font-light tracking-widest">//</span>Builder
+            CV<span className="text-primary font-light tracking-widest">//</span>Genius
           </span>
         </Link>
 
@@ -65,7 +66,8 @@ function PublicLayout() {
         </nav>
 
         <div className="flex items-center gap-4 lg:gap-6">
-          <div className="hidden lg:block">
+          <div className="hidden items-center gap-4 lg:flex">
+            <LanguageSwitch />
             <ThemeToggle />
           </div>
 
@@ -75,7 +77,7 @@ function PublicLayout() {
               className="hidden sm:flex font-mono text-[11px] font-black tracking-[0.2em] rounded-none h-10 px-8 bg-primary text-background hover:bg-primary/90 accent-glow"
               onClick={() => navigate('/dashboard')}
             >
-              ACCES_SYSTEME
+              MES_CV
             </Button>
           ) : (
             <div className="hidden sm:flex items-center gap-4">
@@ -108,7 +110,7 @@ function PublicLayout() {
             <div className="flex items-center justify-between mb-16">
               <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2">
                 <div className="size-4 bg-primary rotate-45" />
-                <span className="text-xl font-display font-bold tracking-tighter uppercase">SaaS_Builder</span>
+                <span className="text-xl font-display font-bold tracking-tighter uppercase">CV_Genius</span>
               </Link>
               <button onClick={() => setIsMobileMenuOpen(false)} className="font-mono text-xs text-primary font-black uppercase">/CLOSE</button>
             </div>
@@ -128,7 +130,8 @@ function PublicLayout() {
 
             <div className="mt-auto space-y-6">
               <div className="flex items-center justify-between border-t border-border pt-6">
-                <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-widest">Theme Shift</span>
+                <span className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-widest">Langue / thème</span>
+                <LanguageSwitch />
                 <ThemeToggle />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -162,7 +165,7 @@ function PublicLayout() {
           <div className="flex items-center gap-2 opacity-80">
             <div className="size-3 bg-primary rotate-45" />
             <span className="font-display font-bold tracking-tighter text-sm uppercase">
-              SaaS<span className="text-primary font-light tracking-widest">//</span>Builder
+              CV<span className="text-primary font-light tracking-widest">//</span>Genius
             </span>
           </div>
 

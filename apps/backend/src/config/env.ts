@@ -85,6 +85,11 @@ type EnvConfig = {
   securityTokenCleanupCronEnabled: boolean;
   securityTokenCleanupCronIntervalMinutes: number;
   redisUrl: string | null;
+  aiEnabled: boolean;
+  aiProvider: 'gemini' | 'mock';
+  geminiApiKey: string | null;
+  geminiModel: string;
+  aiTimeoutMs: number;
 };
 
 let cached: EnvConfig | null = null;
@@ -284,6 +289,22 @@ function loadEnv(): EnvConfig {
     process.exit(1);
   }
 
+  const aiEnabled = parseBoolean(process.env.AI_ENABLED, true);
+  const aiProvider = process.env.AI_PROVIDER === 'mock' ? 'mock' : 'gemini';
+  const geminiApiKey = process.env.GEMINI_API_KEY?.trim() || null;
+  const geminiModel = process.env.GEMINI_MODEL?.trim() || 'gemini-1.5-flash';
+  const aiTimeoutMs = parseNumber(process.env.AI_TIMEOUT_MS, 25000);
+  if (aiTimeoutMs < 5000 || aiTimeoutMs > 60000) {
+    // eslint-disable-next-line no-console
+    console.error('AI_TIMEOUT_MS must be between 5000 and 60000.');
+    process.exit(1);
+  }
+  if (isProduction && aiEnabled && aiProvider === 'gemini' && !geminiApiKey) {
+    // eslint-disable-next-line no-console
+    console.error('GEMINI_API_KEY is required in production when AI is enabled.');
+    process.exit(1);
+  }
+
   cached = {
     nodeEnv,
     port,
@@ -363,7 +384,12 @@ function loadEnv(): EnvConfig {
     serviceStatusHistoryLimit,
     securityTokenCleanupCronEnabled: parseBoolean(process.env.SECURITY_TOKEN_CLEANUP_CRON_ENABLED, true),
     securityTokenCleanupCronIntervalMinutes: securityTokenCleanupInterval,
-    redisUrl
+    redisUrl,
+    aiEnabled,
+    aiProvider,
+    geminiApiKey,
+    geminiModel,
+    aiTimeoutMs
   };
 
   if (cached.twilioVerifyMode !== 'live' && cached.twilioVerifyMode !== 'mock') {

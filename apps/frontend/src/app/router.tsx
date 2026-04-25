@@ -3,7 +3,8 @@ import { createBrowserRouter } from 'react-router-dom';
 import PublicLayout from './layout/PublicLayout';
 import PrivateLayout from './layout/PrivateLayout';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
-import LandingPricing from '@/pages/public/LandingPricing';
+import ResumeLanding from '@/pages/public/ResumeLanding';
+import ResumePricing from '@/pages/public/ResumePricing';
 import Login from '@/pages/public/Login';
 import Register from '@/pages/public/Register';
 import VerifyEmail from '@/pages/public/VerifyEmail';
@@ -19,6 +20,9 @@ import OAuthCallback from '@/pages/public/OAuthCallback';
 import Terms from '@/pages/public/Terms';
 import Privacy from '@/pages/public/Privacy';
 import Dashboard from '@/pages/private/Dashboard';
+import ResumeBuilder from '@/pages/private/ResumeBuilder';
+import ResumeEditor from '@/pages/private/ResumeEditor';
+import Templates from '@/pages/private/Templates';
 import Profile from '@/pages/private/Profile';
 import Sessions from '@/pages/private/Sessions';
 import Billing from '@/pages/private/Billing';
@@ -40,8 +44,8 @@ const router = createBrowserRouter([
     path: '/',
     element: <PublicLayout />,
     children: [
-      { index: true, element: <LandingPricing /> },
-      { path: 'pricing', element: <LandingPricing /> },
+      { index: true, element: <ResumeLanding /> },
+      { path: 'pricing', element: <ResumePricing /> },
       { path: 'login', element: <Login /> },
       { path: 'register', element: <Register /> },
       { path: 'verify-email', element: <VerifyEmail /> },
@@ -71,6 +75,10 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: 'dashboard', element: <Dashboard /> },
+      { path: 'builder', element: <ResumeBuilder /> },
+      { path: 'generation', element: <ResumeBuilder /> },
+      { path: 'editor/:resumeId', element: <ResumeEditor /> },
+      { path: 'templates', element: <Templates /> },
       { path: 'complete-profile', element: <CompleteProfile /> },
       { path: 'profile', element: <Profile /> },
       { path: 'sessions', element: <Sessions /> },

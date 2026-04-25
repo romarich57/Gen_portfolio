@@ -19,6 +19,8 @@ import { adminApiRouter } from './routes/adminApi/router';
 import { billingRouter } from './routes/billing';
 import { webhookRouter } from './routes/webhooks/router';
 import { meRouter } from './routes/me/router';
+import { resumesRouter } from './routes/resumes';
+import { aiRouter } from './routes/ai';
 
 const app = express();
 
@@ -46,6 +48,8 @@ app.use('/api/health', healthLimiter, healthRouter);
 app.use('/auth', authRouter);
 app.use(onboardingGate);
 app.use('/api/admin', adminApiRouter);
+app.use('/api/resumes', resumesRouter);
+app.use('/api/ai', aiRouter);
 app.use('/me', meRouter);
 app.use('/protected', protectedRouter);
 app.use('/admin', adminApiLimiter, adminRouter);

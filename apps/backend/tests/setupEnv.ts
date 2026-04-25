@@ -1,6 +1,6 @@
 process.env.NODE_ENV = 'test';
 process.env.PORT = '0';
-process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5434/saas_builder_test?schema=public';
+process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5434/cv_genius_test?schema=public';
 process.env.CORS_ORIGINS = 'http://localhost:3000';
 process.env.LOG_LEVEL = 'silent';
 process.env.TRUST_PROXY = '0';
@@ -51,3 +51,8 @@ process.env.REFRESH_TOKEN_TTL_DAYS = '30';
 process.env.IDLE_TIMEOUT_MINUTES = '30';
 process.env.REAUTH_MAX_HOURS = '12';
 process.env.HTTPS_ENABLED = 'false';
+process.env.AI_ENABLED = 'true';
+process.env.AI_PROVIDER = 'mock';
+process.env.GEMINI_API_KEY = 'test_gemini_key';
+process.env.GEMINI_MODEL = 'gemini-test';
+process.env.AI_TIMEOUT_MS = '15000';

@@ -130,7 +130,7 @@ export async function maybeSendLoginAlert(params: LoginAlertParams): Promise<voi
         sendTasks.push(
           sendSmsMessage({
             to: phone,
-            body: `Nouvelle connexion sur votre compte SaaS Builder. IP: ${ip}`
+            body: `Nouvelle connexion sur votre compte CV Genius. IP: ${ip}`
           })
         );
       }

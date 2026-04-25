@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import ThemeToggle from '@/components/common/ThemeToggle';
+import LanguageSwitch from '@/components/common/LanguageSwitch';
 import Button from '@/components/ui/Button';
 import { useAuth } from '@/app/providers/AuthBootstrap';
 
@@ -35,21 +36,30 @@ function PrivateLayout() {
 
         {/* Center: Dashboard */}
         <nav className="absolute left-1/2 -translate-x-1/2">
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              `font-mono text-xs font-black tracking-[0.3em] uppercase transition-all hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'
-              }`
-            }
-          >
-            DASHBOARD
-            <span className="block h-px w-full bg-primary scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-          </NavLink>
+          <div className="flex items-center gap-6">
+            {[
+              { to: '/dashboard', label: 'CV' },
+              { to: '/templates', label: 'TEMPLATES' },
+              { to: '/billing', label: 'ABONNEMENT' }
+            ].map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `font-mono text-xs font-black tracking-[0.3em] uppercase transition-all hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
         </nav>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-4">
           <ThemeToggle />
+          <LanguageSwitch />
           <div className="h-4 w-px bg-border/50 mx-2 hidden sm:block" />
 
           {/* Avatar / Profile Button */}
@@ -92,7 +102,7 @@ function PrivateLayout() {
         <div className="max-w-7xl mx-auto flex justify-between items-center opacity-50">
           <div className="flex items-center gap-2">
             <div className="size-3 bg-primary rotate-45" />
-            <span className="font-display font-bold tracking-tighter text-xs uppercase">SaaS//Builder</span>
+            <span className="font-display font-bold tracking-tighter text-xs uppercase">CV//Genius</span>
           </div>
           <span className="font-mono text-[9px] font-black tracking-[0.3em] uppercase">Build by Batox</span>
         </div>
